@@ -396,6 +396,7 @@ func main() {
 	http.HandleFunc("/ip", publicIPHandler)
 	http.HandleFunc("/map", mapHandler)
 	http.HandleFunc("/", clientsHandler)
+	http.HandleFunc("/clients", clientsHandler)
 	http.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(uploadPath))))
 
 	logger.Println("Сервер запущен на :4000")
