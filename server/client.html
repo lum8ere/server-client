@@ -34,17 +34,19 @@
         <button onclick="sendCommand('start')">Start Streaming</button>
         <button onclick="sendCommand('stop')">Stop Streaming</button>
         <button onclick="sendCommand('screenshot')">Take Screenshot</button>
+        <button onclick="sendCommand('metrics')">Get Metrics</button>
         <button id="download" onclick="downloadClient()">Download Client</button>
-        <!-- Кнопка для отображения на карте, можно при желании передать clientId -->
         <button onclick="window.location.href='/map?client={{.}}'">Show on the Map</button>
     </div>
     <p>Server time: <span id="serverTime"></span></p>
     <img id="videoStream" src="/uploads/latest_frame.jpg" alt="Video Stream">
     <h2>Screenshot</h2>
     <img id="screenshotStream" src="/uploads/latest_screenshot.jpg" alt="Screenshot Stream">
+    
+    <h2>Метрики</h2>
+    <div id="metrics">Загрузка метрик...</div>
   
     <script>
-        // Переменная с ID выбранного клиента
         var clientId = "{{.}}";
 
         function updateTime() {
@@ -64,8 +66,37 @@
             document.getElementById('screenshotStream').src = `/uploads/latest_screenshot.jpg?t=${Date.now()}`;
         }
 
+        function updateMetrics() {
+            fetch('/clientmetrics?client=' + clientId)
+                .then(response => response.json())
+                .then(data => {
+                    let text = "";
+                    if(Object.keys(data).length === 0) {
+                        text = "Метрики отсутствуют";
+                    } else {
+                        text += "Дисковое пространство: " + formatBytes(data.disk_total) + " (Total), " + formatBytes(data.disk_free) + " (Free)<br>";
+                        text += "Оперативная память: " + formatBytes(data.memory_total) + " (Total), " + formatBytes(data.memory_available) + " (Available)<br>";
+                        text += "Процессор: " + data.processor + "<br>";
+                        text += "ОС: " + data.os;
+                    }
+                    document.getElementById("metrics").innerHTML = text;
+                })
+                .catch(error => {
+                    console.error("Ошибка получения метрик:", error);
+                    document.getElementById("metrics").innerText = "Ошибка получения метрик";
+                });
+        }
+
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return "0 Bytes";
+            let k = 1024;
+            let dm = decimals < 0 ? 0 : decimals;
+            let sizes = ["Bytes", "KB", "MB", "GB", "TB"];
+            let i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
+        }
+
         function sendCommand(cmd) {
-            // Передаём параметр id с выбранным клиентом
             fetch(`/command?cmd=${cmd}&id=${clientId}`)
                 .then(response => response.text())
                 .then(result => { 
@@ -87,11 +118,13 @@
             updateTime();
             updateImage();
             updateScreenshot();
+            updateMetrics();
         }, 1000);
 
         updateTime();
         updateImage();
         updateScreenshot();
+        updateMetrics();
     </script>
 </body>
 </html>
