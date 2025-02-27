@@ -121,3 +121,75 @@ func (s *Service) commandHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Write([]byte("Команда отправлена"))
 }
+
+func (s *Service) wsAudioHandler(w http.ResponseWriter, r *http.Request) {
+    clientID := r.URL.Query().Get("client")
+    if clientID == "" {
+        http.Error(w, "client ID is required", http.StatusBadRequest)
+        return
+    }
+
+    conn, err := upgrader.Upgrade(w, r, nil)
+    if err != nil {
+        s.logger.Printf("Ошибка апгрейда wsAudio: %v", err)
+        return
+    }
+
+    s.logger.Printf("Audio source connected: %s", clientID)
+
+    s.m.Lock()
+    s.audioSources[clientID] = conn
+    s.m.Unlock()
+
+    // Считываем бесконечно аудиоданные и транслируем
+    go s.HandleAudioSource(clientID, conn)
+}
+
+func (s *Service) wsAudioListenHandler(w http.ResponseWriter, r *http.Request) {
+    clientID := r.URL.Query().Get("client")
+    if clientID == "" {
+        http.Error(w, "client ID is required", http.StatusBadRequest)
+        return
+    }
+
+    conn, err := upgrader.Upgrade(w, r, nil)
+    if err != nil {
+        s.logger.Printf("Ошибка апгрейда wsAudioListen: %v", err)
+        return
+    }
+
+    s.logger.Printf("Audio listener connected for: %s", clientID)
+
+    s.m.Lock()
+    s.audioListeners[clientID] = append(s.audioListeners[clientID], conn)
+    s.m.Unlock()
+
+    go s.handleAudioListener(clientID, conn)
+}
+
+func (s *Service) handleAudioListener(clientID string, conn *websocket.Conn) {
+    defer func() {
+        s.m.Lock()
+        // удаляем conn из audioListeners[clientID]
+        listeners := s.audioListeners[clientID]
+        for i, c := range listeners {
+            if c == conn {
+                listeners = append(listeners[:i], listeners[i+1:]...)
+                break
+            }
+        }
+        s.audioListeners[clientID] = listeners
+        s.m.Unlock()
+        conn.Close()
+        s.logger.Printf("Audio listener disconnected for: %s", clientID)
+    }()
+
+    // Обычно слушателю ничего не шлём, но если захотим...
+    // Просто читаем и игнорируем, чтоб не отвалилось
+    for {
+        if _, _, err := conn.NextReader(); err != nil {
+            s.logger.Printf("Audio listener read error (%s): %v", clientID, err)
+            return
+        }
+    }
+}

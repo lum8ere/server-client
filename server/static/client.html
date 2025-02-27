@@ -37,8 +37,9 @@
       <button onclick="sendCommand('stop')">Stop Streaming</button>
       <button onclick="sendCommand('screenshot')">Take Screenshot</button>
       <button onclick="sendCommand('metrics')">Get Metrics</button>
-      <button onclick="sendCommand('mic_start')">Start Mic</button>
-      <button onclick="sendCommand('mic_stop')">Stop Mic</button>
+      <!-- <button onclick="sendCommand('mic_start')">Start Mic</button>
+      <button onclick="sendCommand('mic_stop')">Stop Mic</button> -->
+      <!-- <button onclick="resumeAudio()">Включить звук</button> -->
       <button onclick="sendCommand('record_audio')">Record Audio</button>
       <button id="download" onclick="downloadClient()">Download Client</button>
       <button onclick="window.location.href='/map?client={{.}}'">
@@ -77,6 +78,14 @@
 
     <script>
       var clientId = "{{.}}";
+
+      function resumeAudio() {
+        if (audioCtx && audioCtx.state === "suspended") {
+          audioCtx.resume().then(() => {
+            console.log("AudioContext resumed");
+          });
+        }
+      }
 
       function updateTime() {
         fetch("/api/time")
@@ -222,5 +231,76 @@
       updateMetrics();
       // updateMic();
     </script>
+    <!-- <script>
+      let audioCtx = null;
+      let scriptNode = null;
+
+      // Очередь для пришедших аудиоблоков
+      let audioQueue = [];
+
+      function startAudioListening(clientId) {
+        // Инициируем аудиоконтекст
+        audioCtx = new AudioContext();
+
+        // ScriptProcessor устарел, но для примера пойдёт.
+        // Можно использовать AudioWorkletProcessor для более современного подхода.
+        scriptNode = audioCtx.createScriptProcessor(4096, 1, 1);
+
+        scriptNode.onaudioprocess = (audioProcessingEvent) => {
+          console.log(
+            "onaudioprocess called, queue length:",
+            audioQueue.length
+          );
+          const output = audioProcessingEvent.outputBuffer.getChannelData(0);
+          // Обнулим буфер, если нет данных
+          for (let i = 0; i < output.length; i++) {
+            output[i] = 0;
+          }
+
+          // Если в очереди есть данные, возьмём один фрейм
+          if (audioQueue.length > 0) {
+            const pcm16 = audioQueue.shift(); // Int16Array
+            // pcm16.length может быть меньше/больше, чем output.length
+            const len = Math.min(pcm16.length, output.length);
+            for (let i = 0; i < len; i++) {
+              // Конвертируем 16-бит [-32768..32767] в float [-1..1]
+              output[i] = pcm16[i] / 32768;
+            }
+          }
+        };
+
+        scriptNode.connect(audioCtx.destination);
+
+        // Подключаемся по WebSocket
+        const wsUrl = `ws://${window.location.host}/wsAudioListen?client=${clientId}`;
+        const ws = new WebSocket(wsUrl);
+        ws.binaryType = "arraybuffer";
+
+        ws.onopen = () => {
+          console.log("Audio listening WebSocket open");
+        };
+
+        ws.onmessage = (evt) => {
+          const arr = new Int16Array(evt.data);
+          let sum = 0;
+          for (let i = 0; i < arr.length; i++) {
+            sum += Math.abs(arr[i]);
+          }
+          let avg = sum / arr.length;
+          console.log("Got audio chunk, avg amplitude:", avg);
+          audioQueue.push(arr);
+        };
+
+        ws.onclose = () => {
+          console.log("Audio listening WebSocket closed");
+        };
+      }
+
+      // Пример вызова:
+      window.onload = () => {
+        const clientId = "{{.}}";
+        startAudioListening(clientId);
+      };
+    </script> -->
   </body>
 </html>

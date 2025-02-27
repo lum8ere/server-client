@@ -322,8 +322,6 @@ def control_ws():
                 logger.error(f"Ошибка WebSocket подключения: {e}")
         time.sleep(5)  # Попытка переподключения через 5 секунд, если соединение не активно
 
-
-
 def current_user_has_password() -> bool:
     username = getpass.getuser()
 
@@ -356,6 +354,63 @@ def get_min_password_length() -> int:
         return -1
     except Exception:
         return -1
+    
+# def audio_ws_worker():
+    """
+    Функция для подключения к wsAudio и отправки фреймов микрофона.
+    """
+    ws_audio = websocket.WebSocket()
+    audio_ws_url = "ws://127.0.0.1:4000/wsAudio?client=client-1"
+    try:
+        ws_audio.connect(audio_ws_url)
+        logging.info(f"Audio WebSocket connected successfully to {audio_ws_url}")
+    except Exception as e:
+        logging.error(f"Audio WebSocket connect error: {e}")
+        return
+
+    p = pyaudio.PyAudio()
+    stream = None
+
+    try:
+        # Открываем микрофон
+        stream = p.open(format=pyaudio.paInt16,
+                        channels=1,
+                        rate=44100,
+                        input=True,
+                        frames_per_buffer=1024)
+        logging.info("Microphone stream opened successfully.")
+
+        while True:
+            if mic_streaming_active:
+                try:
+                    audio_data = stream.read(1024, exception_on_overflow=False)
+                    logging.debug("Read 1024 samples from microphone.")
+                except Exception as read_err:
+                    logging.error(f"Error reading from microphone: {read_err}")
+                    continue
+
+                try:
+                    ws_audio.send(audio_data, opcode=websocket.ABNF.OPCODE_BINARY)
+                    logging.debug("Sent audio frame via Audio WebSocket.")
+                except Exception as send_err:
+                    logging.error(f"Error sending audio frame: {send_err}")
+                time.sleep(0.01)
+            else:
+                logging.debug("Mic streaming not active, waiting...")
+                time.sleep(0.5)
+    except Exception as e:
+        logging.error(f"Audio capture error: {e}")
+    finally:
+        if stream is not None:
+            stream.stop_stream()
+            stream.close()
+            logging.info("Microphone stream closed.")
+        p.terminate()
+        try:
+            ws_audio.close()
+            logging.info("Audio WebSocket closed.")
+        except Exception as close_err:
+            logging.error(f"Error closing Audio WebSocket: {close_err}")
 
 if __name__ == "__main__":
     logger.info("Клиент запустился")
@@ -379,13 +434,13 @@ if __name__ == "__main__":
     video_thread = threading.Thread(target=capture_and_send_video, daemon=True)
     video_thread.start()
 
-    # Запуск потока для трансляции аудио с микрофона
-    mic_thread = threading.Thread(target=capture_and_send_audio, daemon=True)
-    mic_thread.start()
+    # TODO:
+    # Пока уберу, потому что не понятно работает, большая задержка и качество звука не очень
+    # # Запуск потока для трансляции аудио с микрофона
+    # audio_thread = threading.Thread(target=audio_ws_worker, daemon=True)
+    # audio_thread.start()
 
     ws_thread.join()
     video_thread.join()
-    mic_thread.join()
+    # mic_thread.join()
 
-    # # Запуск основного цикла захвата и отправки видео/скриншотов
-    # capture_and_send_video()

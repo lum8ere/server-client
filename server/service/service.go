@@ -4,6 +4,8 @@ import (
 	"log"
 	"sync"
 	"sync/atomic"
+
+	"github.com/gorilla/websocket"
 )
 
 type Service struct {
@@ -11,7 +13,8 @@ type Service struct {
 	logger        *log.Logger
 	m             sync.RWMutex
 	clientCounter atomic.Int64
-
+    audioSources   map[string]*websocket.Conn
+    audioListeners map[string][]*websocket.Conn
 	uploadPath string
 }
 
@@ -21,7 +24,8 @@ func New(logger *log.Logger, uploadPath string) *Service {
 		logger:        logger,
 		m:             sync.RWMutex{},
 		clientCounter: atomic.Int64{},
-
+        audioSources:   make(map[string]*websocket.Conn),
+        audioListeners: make(map[string][]*websocket.Conn),
 		uploadPath: uploadPath,
 	}
 }
