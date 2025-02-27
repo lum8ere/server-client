@@ -163,3 +163,32 @@
 2025-02-27 12:08:48,986 [ERROR] WebSocket пїЅпїЅпїЅпїЅпїЅпїЅ: [WinError 10054] пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 2025-02-27 12:08:48,987 [ERROR] [WinError 10054] пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ - goodbye
 2025-02-27 12:08:48,987 [INFO] WebSocket пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+2025-02-27 13:56:46,442 [INFO] Клиент запустился
+2025-02-27 13:56:46,444 [INFO] Сервер доступен. Серверное время: 2025-02-27T10:56:46Z
+2025-02-27 13:56:46,445 [INFO] Websocket connected
+2025-02-27 13:56:46,446 [INFO] WebSocket соединение установлено
+2025-02-27 13:56:46,918 [INFO] Получен публичный IP: 185.153.55.22
+2025-02-27 13:56:46,918 [INFO] Получена команда: id:client-1
+2025-02-27 13:56:56,962 [INFO] Получена команда: vpn_create
+2025-02-27 13:56:56,962 [INFO] Создание VPN подключения по команде сервера.
+2025-02-27 13:56:57,809 [INFO] VPN connection created successfully: 
+
+Name                  : MyVPN
+ServerAddress         : vpn.example.com
+AllUserConnection     : False
+Guid                  : {3D279611-5026-430F-AB4A-8FBA40AF950F}
+TunnelType            : L2tp
+AuthenticationMethod  : {MsChapv2}
+EncryptionLevel       : Optional
+L2tpIPsecAuth         : Certificate
+UseWinlogonCredential : False
+EapConfigXmlStream    : 
+ConnectionStatus      : Disconnected
+RememberCredential    : False
+SplitTunneling        : False
+DnsSuffix             : 
+IdleDisconnectSeconds : 0
+
+
+
+

