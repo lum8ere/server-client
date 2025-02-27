@@ -20,6 +20,7 @@ func RegisterRoutes(r *mux.Router, s *Service) {
 	r.HandleFunc("/clientappsdata", s.clientAppsDataHandler)
 	r.HandleFunc("/wsAudio", s.wsAudioHandler)
     r.HandleFunc("/wsAudioListen", s.wsAudioListenHandler)
+	r.HandleFunc("/download/client", s.downloadClientHandler)
 
 	//for upload
 	uploader := r.PathPrefix("/upload").Subrouter()
