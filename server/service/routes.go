@@ -17,7 +17,7 @@ func RegisterRoutes(r *mux.Router, s *Service) {
 	r.HandleFunc("/client", s.clientHandler)
 	r.HandleFunc("/clients", s.clientsHandler)
 	r.HandleFunc("/clientmetrics", s.clientMetricsHandler)
-	r.HandleFunc("/clientappsdata", s.clientAppsDataHandler)
+	// r.HandleFunc("/clientappsdata", s.clientAppsDataHandler)
 	r.HandleFunc("/wsAudio", s.wsAudioHandler)
     r.HandleFunc("/wsAudioListen", s.wsAudioListenHandler)
 	
@@ -36,7 +36,9 @@ func RegisterRoutes(r *mux.Router, s *Service) {
 
 	// api handlers для фронта
 	r.HandleFunc("/api/download/client", s.downloadClientHandler)
-	r.HandleFunc("/api/clients", s.GetClients)
+	r.HandleFunc("/api/clients", s.GetClients).Methods("GET")
+	r.HandleFunc("/api/clients/{id}", s.GetClientById).Methods("GET")
+	r.HandleFunc("/api/map/{id}", s.mapFrontendHandler).Methods("GET")
 
 	// r.Handle("/uploads", http.StripPrefix("/uploads/", http.FileServer(http.Dir(s.uploadPath))))
 	r.PathPrefix("/uploads/").Handler(

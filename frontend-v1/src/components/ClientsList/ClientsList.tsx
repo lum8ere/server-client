@@ -118,8 +118,21 @@ export const ClientsList: React.FC = () => {
         }
     };
 
-    const downloadClient = () => {
-        window.open('/download/client', '_blank');
+    const downloadClient = async () => {
+        try {
+            const response = await instance.get('/api/download/client', {
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(response.data);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'client.exe');
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (err) {
+            console.error('Ошибка скачивания файла', err);
+        }
     };
 
     return (
