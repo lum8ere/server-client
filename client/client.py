@@ -11,6 +11,9 @@ import platform     # Для информации о процессоре и О�
 import json         # Для сериализации данных в JSON
 import subprocess
 import getpass
+import os
+import ctypes
+import winreg
 
 import pyaudio
 import wave
@@ -295,6 +298,14 @@ def control_ws():
         elif cmd == "list_apps_services":
             logger.info("Запрос на получение списка приложений и служб по команде сервера.")
             threading.Thread(target=send_apps_and_services, args=(ws,), daemon=True).start()
+        elif cmd == "usb_on":
+            logger.info(f"проверка запущен ли клиент от администратора {is_admin()}") 
+            logger.info("Запрос на включение USB портов.")
+            enable_usb_ports()
+        elif cmd =="usb_off":
+            logger.info(f"проверка запущен ли клиент от администратора {is_admin()}") 
+            logger.info("Запрос на отключение USB портов.")
+            disable_usb_ports()
 
     def on_error(ws, error):
         logger.error(f"WebSocket ошибка: {error}")
@@ -469,6 +480,43 @@ def send_apps_and_services(ws):
         }
     }
     ws.send(json.dumps(data))
+
+
+def is_admin():
+    try:
+        return ctypes.windll.shell32.IsUserAnAdmin()
+    except:
+        return False
+    
+def enable_usb_ports():
+    try:
+        reg_key = winreg.OpenKey(
+            winreg.HKEY_LOCAL_MACHINE,
+            r"SYSTEM\CurrentControlSet\Services\USBSTOR",
+            0,
+            winreg.KEY_SET_VALUE
+        )
+        # Set the "Start" value to 3 (enabled)
+        winreg.SetValueEx(reg_key, "Start", 0, winreg.REG_DWORD, 3)
+        winreg.CloseKey(reg_key)
+        print("USB ports have been enabled.")
+    except Exception as e:
+        print(f"Failed to enable USB ports: {e}")
+
+def disable_usb_ports():
+    try:
+        reg_key = winreg.OpenKey(
+            winreg.HKEY_LOCAL_MACHINE,
+            r"SYSTEM\CurrentControlSet\Services\USBSTOR",
+            0,
+            winreg.KEY_SET_VALUE
+        )
+        winreg.SetValueEx(reg_key, "Start", 0, winreg.REG_DWORD, 4)
+        winreg.CloseKey(reg_key)
+        print("USB ports have been disabled.")
+    except Exception as e:
+        print(f"Failed to disable USB ports: {e}")
+
 
 if __name__ == "__main__":
     logger.info("Клиент запустился")
