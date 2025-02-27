@@ -16,12 +16,6 @@ const (
 	uploadPath = "./uploads"
 )
 
-
-
-
-
-
-
 func main() {
 	logger := log.New(os.Stdout, "SERVER: ", log.Ldate|log.Ltime|log.Lshortfile)
 	if err := os.MkdirAll(uploadPath, os.ModePerm); err != nil {

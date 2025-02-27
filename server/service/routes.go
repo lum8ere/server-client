@@ -23,16 +23,21 @@ func RegisterRoutes(r * mux.Router, s *Service) {
 	r.HandleFunc("/clientmetrics", s.clientMetricsHandler)
 
 	//for upload
-	uploader := r.Path("/upload").Subrouter()
+	uploader := r.PathPrefix("/upload").Subrouter()
 	uploader.HandleFunc("/", s.uploadHandler)
 	uploader.HandleFunc("/screenshot", s.uploadScreenshotHandler)
+	uploader.HandleFunc("/audio", s.uploadAudioHandler)
+	uploader.HandleFunc("/recorded_audio", s.uploadRecordedAudioHandler)
 
 	//some funcs
 	r.HandleFunc("/command", s.commandHandler)
 	r.HandleFunc("/api/time", timeHandler)
 	r.HandleFunc("/map", s.mapHandler)
 
-	r.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(s.uploadPath))))
+	// r.Handle("/uploads", http.StripPrefix("/uploads/", http.FileServer(http.Dir(s.uploadPath))))
+	r.PathPrefix("/uploads/").Handler(
+		http.StripPrefix("/uploads/", http.FileServer(http.Dir(s.uploadPath))),
+	)
 }
 
 func timeHandler(w http.ResponseWriter, r *http.Request) {
