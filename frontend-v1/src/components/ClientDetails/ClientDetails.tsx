@@ -47,8 +47,8 @@ interface ServiceInfo {
 }
 
 interface AppsServices {
-    Processes: ProcessInfo[];
-    Services: ServiceInfo[];
+    processes: ProcessInfo[];
+    services: ServiceInfo[];
 }
 
 interface ClientNode {
@@ -283,16 +283,16 @@ export const ClientDetails: React.FC = () => {
 
             {/* Табы */}
             <Tabs defaultActiveKey="details">
-                <TabPane tab="Details" key="details">
+                {/* <TabPane tab="Details" key="details">
                     <p>Здесь можно вывести дополнительную информацию о деталях.</p>
-                </TabPane>
+                </TabPane> */}
 
                 {/* Software: processes */}
                 <TabPane tab="Software" key="software">
                     <Table
-                        dataSource={node?.AppsServices?.Processes || []}
+                        dataSource={node?.AppsServices?.processes || []}
                         columns={processColumns}
-                        rowKey="Pid"
+                        rowKey="pid"
                         pagination={{ pageSize: 5 }}
                     />
                 </TabPane>
@@ -300,9 +300,9 @@ export const ClientDetails: React.FC = () => {
                 {/* Service: services */}
                 <TabPane tab="Service" key="service">
                     <Table
-                        dataSource={node?.AppsServices?.Services || []}
+                        dataSource={node?.AppsServices?.services || []}
                         columns={serviceColumns}
-                        rowKey="Name"
+                        rowKey="name"
                         pagination={{ pageSize: 5 }}
                     />
                 </TabPane>
