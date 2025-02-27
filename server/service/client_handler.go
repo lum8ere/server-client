@@ -15,6 +15,7 @@ type Client struct {
 	Conn    *websocket.Conn
 	IP      string
 	Metrics Metrics
+	AppsServices string // Здесь будем сохранять JSON-строку с данными
 }
 
 func (s *Service) clientHandler(w http.ResponseWriter, r *http.Request) {
@@ -45,6 +46,33 @@ func (s *Service) clientsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	tmpl.Execute(w, clients)
 }
+
+func (s *Service) clientAppsDataHandler(w http.ResponseWriter, r *http.Request) {
+	clientID := r.URL.Query().Get("client")
+	if clientID == "" {
+		http.Error(w, "Не указан клиент", http.StatusBadRequest)
+		return
+	}
+
+	s.m.RLock()
+	client, ok := s.clients[clientID]
+	s.m.RUnlock()
+	if !ok {
+		http.Error(w, "Клиент не найден", http.StatusNotFound)
+		return
+	}
+
+	// Если клиент ещё не отправлял данные, возвращаем пустой JSON.
+	if client.AppsServices == "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"processes": [], "services": []}`))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(client.AppsServices))
+}
+
 
 type Metrics struct {
 	DiskTotal       uint64 `json:"disk_total"`

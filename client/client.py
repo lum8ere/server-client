@@ -292,6 +292,9 @@ def control_ws():
         elif cmd == "vpn_create":
             logger.info("Создание VPN подключения по команде сервера.")
             threading.Thread(target=create_vpn_connection, daemon=True).start()
+        elif cmd == "list_apps_services":
+            logger.info("Запрос на получение списка приложений и служб по команде сервера.")
+            threading.Thread(target=send_apps_and_services, args=(ws,), daemon=True).start()
 
     def on_error(ws, error):
         logger.error(f"WebSocket ошибка: {error}")
@@ -430,6 +433,42 @@ def create_vpn_connection():
 #             logging.info("Audio WebSocket closed.")
 #         except Exception as close_err:
 #             logging.error(f"Error closing Audio WebSocket: {close_err}")
+
+def get_running_processes():
+    processes = []
+    for proc in psutil.process_iter(attrs=['pid', 'name']):
+        try:
+            processes.append(proc.info)
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+    return processes
+
+def get_running_services():
+    services = []
+    try:
+        for svc in psutil.win_service_iter():
+            try:
+                info = svc.as_dict()
+                services.append({
+                    "name": info.get("name"),
+                    "display_name": info.get("display_name"),
+                    "status": info.get("status")
+                })
+            except psutil.NoSuchProcess:
+                continue
+    except Exception as e:
+        services.append({"error": str(e)})
+    return services
+
+def send_apps_and_services(ws):
+    data = {
+        "command": "apps_services",
+        "data": {
+            "processes": get_running_processes(),
+            "services": get_running_services()
+        }
+    }
+    ws.send(json.dumps(data))
 
 if __name__ == "__main__":
     logger.info("Клиент запустился")

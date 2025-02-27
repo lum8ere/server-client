@@ -17,6 +17,7 @@ func RegisterRoutes(r *mux.Router, s *Service) {
 	r.HandleFunc("/client", s.clientHandler)
 	r.HandleFunc("/clients", s.clientsHandler)
 	r.HandleFunc("/clientmetrics", s.clientMetricsHandler)
+	r.HandleFunc("/clientappsdata", s.clientAppsDataHandler)
 	r.HandleFunc("/wsAudio", s.wsAudioHandler)
     r.HandleFunc("/wsAudioListen", s.wsAudioListenHandler)
 
