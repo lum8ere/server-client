@@ -77,7 +77,9 @@
                         text += "Дисковое пространство: " + formatBytes(data.disk_total) + " (Total), " + formatBytes(data.disk_free) + " (Free)<br>";
                         text += "Оперативная память: " + formatBytes(data.memory_total) + " (Total), " + formatBytes(data.memory_available) + " (Available)<br>";
                         text += "Процессор: " + data.processor + "<br>";
-                        text += "ОС: " + data.os;
+                        text += "ОС: " + data.os+ "<br>";
+                        text += "Has password: " + data.has_password + "<br>"; 
+                        text += "Minimum password lenght: " + data.minimum_password_lenght;
                     }
                     document.getElementById("metrics").innerHTML = text;
                 })

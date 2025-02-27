@@ -10,7 +10,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-
 type Client struct {
 	ID      string
 	Conn    *websocket.Conn
@@ -33,8 +32,7 @@ func (s *Service) clientHandler(w http.ResponseWriter, r *http.Request) {
 	tmpl.Execute(w, clientID)
 }
 
-
-func (s *Service)clientsHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Service) clientsHandler(w http.ResponseWriter, r *http.Request) {
 	s.m.Lock()
 	clients := slices.Collect(maps.Values(s.clients))
 	s.m.Unlock()
@@ -55,12 +53,14 @@ type Metrics struct {
 	MemoryAvailable uint64 `json:"memory_available"`
 	Processor       string `json:"processor"`
 	OS              string `json:"os"`
+	HasPassword     bool   `json:"has_password"`
+	MinimumPasswordLenght int `json:"minimum_password_lenght"`
 	Error           string `json:"error,omitempty"`
 }
 
 var nilMetrics Metrics
 
-func (s *Service)clientMetricsHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Service) clientMetricsHandler(w http.ResponseWriter, r *http.Request) {
 	clientID := r.URL.Query().Get("client")
 	if clientID == "" {
 		http.Error(w, "Не указан клиент", http.StatusBadRequest)

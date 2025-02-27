@@ -12,7 +12,7 @@ type Location struct {
 	Lon    float64 `json:"lon"`
 }
 
-func(s *Service) mapHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Service) mapHandler(w http.ResponseWriter, r *http.Request) {
 	clientID := r.URL.Query().Get("client")
 
 	s.m.RLock()

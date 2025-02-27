@@ -7,15 +7,11 @@ import (
 	"github.com/gorilla/mux"
 )
 
-
-
-
-
-func RegisterRoutes(r * mux.Router, s *Service) {
+func RegisterRoutes(r *mux.Router, s *Service) {
 
 	//ws
 	r.HandleFunc("/ws", s.wsHandler)
-	
+
 	//client routes
 	r.HandleFunc("/", s.clientsHandler)
 	r.HandleFunc("/client", s.clientHandler)
@@ -23,7 +19,7 @@ func RegisterRoutes(r * mux.Router, s *Service) {
 	r.HandleFunc("/clientmetrics", s.clientMetricsHandler)
 
 	//for upload
-	uploader := r.Path("/upload").Subrouter()
+	uploader := r.PathPrefix("/upload").Subrouter()
 	uploader.HandleFunc("/", s.uploadHandler)
 	uploader.HandleFunc("/screenshot", s.uploadScreenshotHandler)
 

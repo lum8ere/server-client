@@ -16,19 +16,13 @@ const (
 	uploadPath = "./uploads"
 )
 
-
-
-
-
-
-
 func main() {
 	logger := log.New(os.Stdout, "SERVER: ", log.Ldate|log.Ltime|log.Lshortfile)
 	if err := os.MkdirAll(uploadPath, os.ModePerm); err != nil {
 		logger.Fatalf("Ошибка создания директории: %v", err)
 	}
 
-	go startJPGCleanupJob(10 * time.Minute, logger)
+	go startJPGCleanupJob(10*time.Minute, logger)
 
 	s := service.New(logger, uploadPath)
 
@@ -36,21 +30,19 @@ func main() {
 
 	service.RegisterRoutes(r, s)
 
-    srv := &http.Server{
-        Handler:      r,
-        Addr:         "127.0.0.1:4000",
-        WriteTimeout: 15 * time.Second,
-        ReadTimeout:  15 * time.Second,
-    }
+	srv := &http.Server{
+		Handler:      r,
+		Addr:         "127.0.0.1:4000",
+		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  15 * time.Second,
+	}
 
 	logger.Println("Сервер запущен на :4000")
 
 	log.Fatal(srv.ListenAndServe())
 }
 
-
-
-func startJPGCleanupJob(interval time.Duration,logger *log.Logger) {
+func startJPGCleanupJob(interval time.Duration, logger *log.Logger) {
 	for {
 		time.Sleep(interval)
 		files, err := os.ReadDir(uploadPath)
@@ -71,5 +63,3 @@ func startJPGCleanupJob(interval time.Duration,logger *log.Logger) {
 		}
 	}
 }
-
-
