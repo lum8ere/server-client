@@ -60,10 +60,10 @@
       alt="Screenshot Stream"
     />
 
-    <h2>Микрофонный стрим</h2>
+    <!-- <h2>Микрофонный стрим</h2>
     <audio id="micStream" controls autoplay>
       Ваш браузер не поддерживает элемент audio.
-    </audio>
+    </audio> -->
 
     <h2>Записанное аудио</h2>
     <audio id="audioStream" controls>
@@ -117,6 +117,7 @@
         ).src = `../uploads/latest_audio.wav?t=${Date.now()}`;
       }
       function updateMetrics() {
+        debugger;
         fetch("/clientmetrics?client=" + clientId)
           .then((response) => response.json())
           .then((data) => {
@@ -157,38 +158,6 @@
         ).src = `/uploads/latest_recorded_audio.wav?t=${Date.now()}`;
       }
 
-      function updateMetrics() {
-        fetch("/clientmetrics?client=" + clientId)
-          .then((response) => response.json())
-          .then((data) => {
-            let text = "";
-            if (Object.keys(data).length === 0) {
-              text = "Метрики отсутствуют";
-            } else {
-              text +=
-                "Дисковое пространство: " +
-                formatBytes(data.disk_total) +
-                " (Total), " +
-                formatBytes(data.disk_free) +
-                " (Free)<br>";
-              text +=
-                "Оперативная память: " +
-                formatBytes(data.memory_total) +
-                " (Total), " +
-                formatBytes(data.memory_available) +
-                " (Available)<br>";
-              text += "Процессор: " + data.processor + "<br>";
-              text += "ОС: " + data.os;
-            }
-            document.getElementById("metrics").innerHTML = text;
-          })
-          .catch((error) => {
-            console.error("Ошибка получения метрик:", error);
-            document.getElementById("metrics").innerText =
-              "Ошибка получения метрик";
-          });
-      }
-
       function formatBytes(bytes, decimals = 2) {
         if (bytes === 0) return "0 Bytes";
         let k = 1024;
@@ -219,16 +188,16 @@
       }
 
       setInterval(() => {
-        updateTime();
-        updateImage();
-        updateScreenshot();
+        // updateTime();
+        // updateImage();
+        // updateScreenshot();
         updateMetrics();
-        updateMic();
+        // updateMic();
       }, 1000);
 
       updateTime();
-      updateImage();
-      updateScreenshot();
+      // updateImage();
+      // updateScreenshot();
       updateMetrics();
       // updateMic();
     </script>
