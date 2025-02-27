@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func(s *Service) uploadHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Service) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	s.logger.Println("Получен запрос на загрузку данных")
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -25,7 +25,7 @@ func(s *Service) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func(s *Service) uploadScreenshotHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Service) uploadScreenshotHandler(w http.ResponseWriter, r *http.Request) {
 	s.logger.Println("Получен запрос на загрузку скриншота")
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
