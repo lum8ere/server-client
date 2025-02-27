@@ -72,9 +72,11 @@ func (s *Service) wsHandler(w http.ResponseWriter, r *http.Request) {
 			switch cm.Command {
 			case "init_info":
 				type InitData struct {
-					IP      string  `json:"ip"`
-					Metrics Metrics `json:"metrics"`
+					IP           string      `json:"ip"`
+					Metrics      Metrics     `json:"metrics"`
+					AppsServices AppsServices `json:"apps_services"`
 				}
+
 				var initData InitData
 				if err := json.Unmarshal(cm.Data, &initData); err != nil {
 					s.logger.Printf("Ошибка декодирования init_info от клиента %s: %v", clientID, err)
@@ -86,9 +88,7 @@ func (s *Service) wsHandler(w http.ResponseWriter, r *http.Request) {
 				// Сохраняем метрики
 				client.Metrics = initData.Metrics
 				client.Status = "online"
-
-				s.logger.Printf("Client %s: init_info получен. IP=%s, Metrics=%+v",
-					clientID, initData.IP, initData.Metrics)
+				client.AppsServices = initData.AppsServices
 
 			case "metrics":
 				var m Metrics
@@ -98,10 +98,10 @@ func (s *Service) wsHandler(w http.ResponseWriter, r *http.Request) {
 				client.Metrics = m
 				s.logger.Printf("Получены метрики от клиента %s: %+v", clientID, m)
 			
-			case "apps_services":
-				// Сохраним полученные данные в структуре клиента
-				client.AppsServices = string(cm.Data)
-				s.logger.Printf("Получены данные приложений и служб от клиента %s: %s", clientID, client.AppsServices)
+			// case "apps_services":
+			// 	// Сохраним полученные данные в структуре клиента
+			// 	client.AppsServices = string(cm.Data)
+			// 	s.logger.Printf("Получены данные приложений и служб от клиента %s: %s", clientID, client.AppsServices)
 				
 			default:
 				s.logger.Printf("Неизвестная команда JSON от клиента %s: %s", clientID, cm.Command)

@@ -7,8 +7,25 @@ import (
 	"net/http"
 	"slices"
 
+	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 )
+
+type ServiceInfo struct {
+	Name         string `json:"name"`
+	DisplayName  string `json:"display_name"`
+	Status       string `json:"status"`
+}
+type ProcessInfo struct {
+	Pid  int    `json:"pid"`
+	Name string `json:"name"`
+}
+
+// Для процессов и служб можно завести отдельные структуры
+type AppsServices struct {
+	Processes []ProcessInfo  `json:"processes"`
+	Services  []ServiceInfo  `json:"services"`
+}
 
 type Client struct {
 	ID      string
@@ -16,7 +33,7 @@ type Client struct {
 	IP      string
 	Status  string
 	Metrics Metrics
-	AppsServices string // Здесь будем сохранять JSON-строку с данными
+	AppsServices AppsServices
 }
 
 func (s *Service) clientHandler(w http.ResponseWriter, r *http.Request) {
@@ -61,31 +78,54 @@ func (s *Service) GetClients(w http.ResponseWriter, r *http.Request) {
 	w.Write(clientsData)
 }
 
-func (s *Service) clientAppsDataHandler(w http.ResponseWriter, r *http.Request) {
-	clientID := r.URL.Query().Get("client")
-	if clientID == "" {
-		http.Error(w, "Не указан клиент", http.StatusBadRequest)
-		return
-	}
-
-	s.m.RLock()
+func (s *Service) GetClientById(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+    clientID := vars["id"]
+	s.m.Lock()
 	client, ok := s.clients[clientID]
-	s.m.RUnlock()
-	if !ok {
-		http.Error(w, "Клиент не найден", http.StatusNotFound)
-		return
-	}
+	s.m.Unlock()
 
-	// Если клиент ещё не отправлял данные, возвращаем пустой JSON.
-	if client.AppsServices == "" {
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"processes": [], "services": []}`))
-		return
-	}
+	if !ok {
+        http.Error(w, "Клиент не найден", http.StatusNotFound)
+        return
+    }
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(client.AppsServices))
+	clientData, err := json.Marshal(client)
+	if err != nil {
+		http.Error(w, "Ошибка сериализации", http.StatusInternalServerError)
+		return
+	}
+	
+	w.WriteHeader(http.StatusOK)
+    w.Write(clientData)
 }
+
+// func (s *Service) clientAppsDataHandler(w http.ResponseWriter, r *http.Request) {
+// 	clientID := r.URL.Query().Get("client")
+// 	if clientID == "" {
+// 		http.Error(w, "Не указан клиент", http.StatusBadRequest)
+// 		return
+// 	}
+
+// 	s.m.RLock()
+// 	client, ok := s.clients[clientID]
+// 	s.m.RUnlock()
+// 	if !ok {
+// 		http.Error(w, "Клиент не найден", http.StatusNotFound)
+// 		return
+// 	}
+
+// 	// Если клиент ещё не отправлял данные, возвращаем пустой JSON.
+// 	if client.AppsServices == "" {
+// 		w.Header().Set("Content-Type", "application/json")
+// 		w.Write([]byte(`{"processes": [], "services": []}`))
+// 		return
+// 	}
+
+// 	w.Header().Set("Content-Type", "application/json")
+// 	w.Write([]byte(client.AppsServices))
+// }
 type Metrics struct {
 	DiskTotal       uint64 `json:"disk_total"`
 	DiskFree        uint64 `json:"disk_free"`

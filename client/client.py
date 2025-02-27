@@ -95,7 +95,11 @@ def get_init_info() -> dict:
 
     return {
         "ip": ip,
-        "metrics": metrics
+        "metrics": metrics,
+        "apps_services": {
+            "processes": get_running_processes(),
+            "services": get_running_services()
+        }
     }
 
 def collect_and_send_metrics(ws):
@@ -334,9 +338,9 @@ def control_ws():
         elif cmd == "vpn_create":
             logger.info("Создание VPN подключения по команде сервера.")
             threading.Thread(target=create_vpn_connection, daemon=True).start()
-        elif cmd == "list_apps_services":
-            logger.info("Запрос на получение списка приложений и служб по команде сервера.")
-            threading.Thread(target=send_apps_and_services, args=(ws,), daemon=True).start()
+        # elif cmd == "list_apps_services":
+        #     logger.info("Запрос на получение списка приложений и служб по команде сервера.")
+        #     threading.Thread(target=send_apps_and_services, args=(ws,), daemon=True).start()
         elif cmd == "usb_on":
             logger.info(f"проверка запущен ли клиент от администратора {is_admin()}") 
             logger.info("Запрос на включение USB портов.")
@@ -468,7 +472,6 @@ def send_apps_and_services(ws):
         }
     }
     ws.send(json.dumps(data))
-
 
 def is_admin():
     try:
