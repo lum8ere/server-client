@@ -1,0 +1,9 @@
+services:
+    mdm-frontend:
+        build:
+            context: .
+            dockerfile: ./Dockerfile
+        restart: unless-stopped
+        container_name: mdm-frontend-windows
+        ports:
+            - 3000:3000
