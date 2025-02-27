@@ -9,7 +9,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var 	upgrader = websocket.Upgrader{
+var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
@@ -18,7 +18,7 @@ type ClientMessage struct {
 	Data    json.RawMessage `json:"data"`
 }
 
-func (s *Service)wsHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Service) wsHandler(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		s.logger.Println("Ошибка апгрейда WebSocket:", err)
@@ -28,7 +28,7 @@ func (s *Service)wsHandler(w http.ResponseWriter, r *http.Request) {
 	s.clientCounter.Add(1)
 	clientID := fmt.Sprintf("client-%d", s.clientCounter.Load())
 	client := Client{ID: clientID, Conn: conn, IP: ""}
-	
+
 	s.m.Lock()
 	s.clients[clientID] = client
 	s.m.Unlock()
@@ -85,7 +85,7 @@ func (s *Service)wsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func(s *Service) commandHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Service) commandHandler(w http.ResponseWriter, r *http.Request) {
 	cmd := r.URL.Query().Get("cmd")
 	if cmd == "" {
 		http.Error(w, "Параметр cmd отсутствует", http.StatusBadRequest)

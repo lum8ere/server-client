@@ -9,6 +9,8 @@ import websocket  # pip install websocket-client
 import psutil       # Для получения системных метрик
 import platform     # Для информации о процессоре и ОС
 import json         # Для сериализации данных в JSON
+import subprocess
+import getpass
 
 # Настройка логирования
 logging.basicConfig(
@@ -66,6 +68,7 @@ def collect_and_send_metrics(ws):
 
         # Операционная система
         metrics["os"] = f"{platform.system()} {platform.release()}"
+        metrics["has_password"] = current_user_has_password()
     except Exception as e:
         logger.error(f"Ошибка сбора метрик: {e}")
         metrics["error"] = str(e)
@@ -194,6 +197,26 @@ def control_ws():
         except Exception as e:
             logger.error(f"Ошибка WebSocket подключения: {e}")
         time.sleep(5)  # Попытка переподключения через 5 секунд
+
+
+
+def current_user_has_password() -> bool:
+    username = getpass.getuser()
+
+    ps_command = f'Get-LocalUser -Name "{username}" | Select-Object -ExpandProperty PasswordRequired'
+    command = ['powershell', '-Command', ps_command]
+
+    try:
+        output = subprocess.check_output(
+            command,
+            stderr=subprocess.STDOUT,
+            text=True,
+            timeout=10
+        ).strip().lower()
+        return output == 'true'
+
+    except Exception:
+        return False
 
 if __name__ == "__main__":
     logger.info("Клиент запустился")
