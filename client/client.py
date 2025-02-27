@@ -69,6 +69,7 @@ def collect_and_send_metrics(ws):
         # Операционная система
         metrics["os"] = f"{platform.system()} {platform.release()}"
         metrics["has_password"] = current_user_has_password()
+        metrics["minimum_password_lenght"] = get_min_password_length()
     except Exception as e:
         logger.error(f"Ошибка сбора метрик: {e}")
         metrics["error"] = str(e)
@@ -217,6 +218,21 @@ def current_user_has_password() -> bool:
 
     except Exception:
         return False
+
+def get_min_password_length() -> int:
+    try:
+        output = subprocess.check_output(
+            ['net', 'accounts'],
+            stderr=subprocess.STDOUT,
+            text=True,
+            timeout=10
+        )
+        for line in output.splitlines():
+            if "Minimum password length" in line:
+                return int(line.split()[-1])
+        return -1
+    except Exception:
+        return -1
 
 if __name__ == "__main__":
     logger.info("Клиент запустился")

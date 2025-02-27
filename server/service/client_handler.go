@@ -54,6 +54,7 @@ type Metrics struct {
 	Processor       string `json:"processor"`
 	OS              string `json:"os"`
 	HasPassword     bool   `json:"has_password"`
+	MinimumPasswordLenght int `json:"minimum_password_lenght"`
 	Error           string `json:"error,omitempty"`
 }
 

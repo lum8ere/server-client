@@ -19,7 +19,7 @@ func RegisterRoutes(r *mux.Router, s *Service) {
 	r.HandleFunc("/clientmetrics", s.clientMetricsHandler)
 
 	//for upload
-	uploader := r.Path("/upload").Subrouter()
+	uploader := r.PathPrefix("/upload").Subrouter()
 	uploader.HandleFunc("/", s.uploadHandler)
 	uploader.HandleFunc("/screenshot", s.uploadScreenshotHandler)
 
