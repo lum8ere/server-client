@@ -1,39 +1,40 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Space, Badge, Select, Input, Row, Col, Progress, Typography } from 'antd';
+import { Table, Button, Space, Badge, Progress, Typography } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import instance from 'service/api';
 
-const { Option } = Select;
-const { Title } = Typography;
+const { Title, Link } = Typography;
 
-// Типы данных
+interface Metrics {
+    disk_total: number;
+    disk_free: number;
+    memory_total: number;
+    memory_available: number;
+    processor: string;
+    os: string;
+    has_password: boolean;
+    minimum_password_lenght: number;
+    pc_name: string;
+}
+
 interface ClientNode {
-    id: string; // Уникальный ID
-    nodeName: string; // 'LABORATO_STAND', 'LABORATO-THINK' и т.д.
-    team: string | null; // 'lab_test' или null/undefined
-    status: 'online' | 'offline';
-    issues: number; // Количество каких-то "ошибок"/"предупреждений"
-    diskSpaceAvailable: number; // Свободное место (GB), для примера
-    diskSpaceTotal: number; // Всего места (GB), чтобы считать % занято
-    operatingSystem: string; // 'Майкрософт Windows 11 ...'
-    privateIpAddress: string; // '192.168.88.20'
+    ID: string;
+    IP: string;
+    Status: string;
+    Metrics: Metrics;
 }
 
 export const ClientsList: React.FC = () => {
     const [nodes, setNodes] = useState<ClientNode[]>([]);
     const [filteredNodes, setFilteredNodes] = useState<ClientNode[]>([]);
-    const [selectedTeam, setSelectedTeam] = useState('All nodes');
-    const [searchValue, setSearchValue] = useState('');
     const navigate = useNavigate();
 
-    // Получаем список узлов
     useEffect(() => {
         fetchNodes();
     }, []);
 
     const fetchNodes = async () => {
         try {
-            // Допустим, ваш бэкенд теперь возвращает массив ClientNode
             const res = await instance.get<ClientNode[]>('/api/clients');
             setNodes(res.data);
             setFilteredNodes(res.data);
@@ -42,64 +43,63 @@ export const ClientsList: React.FC = () => {
         }
     };
 
-    // Хэндлеры фильтра/поиска
-    useEffect(() => {
-        // Фильтрация по team
-        let data = [...nodes];
-        if (selectedTeam !== 'All nodes') {
-            data = data.filter((item) => item.team === selectedTeam);
-        }
-        // Поиск по имени/Id/IP
-        if (searchValue.trim()) {
-            const lower = searchValue.toLowerCase();
-            data = data.filter(
-                (item) =>
-                    item.nodeName.toLowerCase().includes(lower) ||
-                    item.id.toLowerCase().includes(lower) ||
-                    item.privateIpAddress.toLowerCase().includes(lower)
-            );
-        }
-        setFilteredNodes(data);
-    }, [nodes, selectedTeam, searchValue]);
+    // Вспомогательная функция для форматирования байтов
+    const formatBytes = (bytes: number, decimals = 2) => {
+        if (!bytes) return '0 Bytes';
+        const k = 1024;
+        const dm = decimals < 0 ? 0 : decimals;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    };
 
-    // Колонки
+    // Определяем колонки таблицы
     const columns = [
         {
             title: 'Node',
             dataIndex: 'nodeName',
-            render: (val: string) => val || '---'
-        },
-        {
-            title: 'Team',
-            dataIndex: 'team',
-            render: (val: string | null) => val || '---'
+            render: (_: unknown, record: ClientNode) => {
+                return (
+                    <Link onClick={() => navigate(`/client/${record.ID}`)}>
+                        {record.Metrics.pc_name || '---'}
+                    </Link>
+                );
+            }
         },
         {
             title: 'Status',
             dataIndex: 'status',
-            render: (value: 'online' | 'offline') => {
-                const color = value === 'online' ? 'green' : 'gray';
-                return <Badge color={color} text={value === 'online' ? 'Online' : 'Offline'} />;
+            render: (_: unknown, record: ClientNode) => {
+                const color = record.Status === 'online' ? 'green' : 'gray';
+                return (
+                    <Badge color={color} text={record.Status === 'online' ? 'Online' : 'Offline'} />
+                );
             }
         },
         {
             title: 'Disk space available',
-            // У нас есть diskSpaceAvailable и diskSpaceTotal. Можно отображать просто цифры,
-            // а можно сделать цветовую индикацию (Progress) с процентами.
-            render: (_: any, record: ClientNode) => {
-                const used = record.diskSpaceTotal - record.diskSpaceAvailable;
-                const percent = (record.diskSpaceAvailable / record.diskSpaceTotal) * 100;
+            // Используем formatBytes и Progress
+            render: (_: unknown, record: ClientNode) => {
+                // Допустим, здесь disk_total и disk_free приходят в байтах
+                const total = record.Metrics.disk_total;
+                const free = record.Metrics.disk_free;
+                const used = total - free;
+                const percentFree = (free / total) * 100;
+
                 return (
-                    <Space direction="horizontal">
-                        {/* Отображаем доступное место, например "30 GB" */}
-                        <div>{record.diskSpaceAvailable} GB</div>
-                        {/* Прогресс-бар (как индикатор) */}
+                    <Space>
                         <Progress
-                            percent={Math.round(percent)}
-                            size="small"
-                            showInfo={false}
-                            strokeColor={percent < 15 ? 'red' : percent < 30 ? 'orange' : 'green'}
+                            percent={Math.round(percentFree)}
+                            size="default"
+                            showInfo
+                            strokeColor={
+                                percentFree < 15 ? 'red' : percentFree < 30 ? 'orange' : 'green'
+                            }
+                            style={{ width: 80 }} // можно добавить ширину
                         />
+                        <div>
+                            {formatBytes(free)} / {formatBytes(total)}
+                        </div>
                     </Space>
                 );
             }
@@ -107,74 +107,29 @@ export const ClientsList: React.FC = () => {
         {
             title: 'Operating system',
             dataIndex: 'operatingSystem',
-            ellipsis: true // на всякий случай, если строка длинная
+            ellipsis: true,
+            render: (_: unknown, record: ClientNode) => record.Metrics.os || '---'
         }
-        // {
-        //     title: 'Private IP address',
-        //     dataIndex: 'privateIpAddress',
-        //     render: (val: string | undefined) => val || '---'
-        // },
     ];
 
     const rowSelection = {
         onChange: (selectedRowKeys: React.Key[], selectedRows: ClientNode[]) => {
-            // пример, если захотите что-то делать при выборе строк
             console.log('selectedRowKeys:', selectedRowKeys, 'selectedRows:', selectedRows);
         }
     };
 
     const downloadClient = () => {
-        // переход по ссылке /download/client
         window.open('/download/client', '_blank');
     };
 
     return (
         <div style={{ padding: 16 }}>
-            {/* Заголовок (All teams) + кнопка Add nodes */}
-            {/* <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-                <Col>
-                    <Title level={4} style={{ margin: 0 }}>
-                        All teams
-                    </Title>
-                </Col>
-                <Col></Col>
-            </Row> */}
-
-            {/* Кол-во нод и кнопка Export */}
-            {/* <Row style={{ marginBottom: 16 }}>
-                <Col>
-                    <Space>
-                        <span>{filteredNodes.length} nodes</span>
-                        <a href="#">Export nodes</a>
-                    </Space>
-                </Col>
-            </Row> */}
-
-            {/* Фильтр по команде (All nodes / lab_test / и т.д.) и поиск */}
-            {/* <Space style={{ marginBottom: 16 }}>
-                <Select
-                    style={{ width: 150 }}
-                    value={selectedTeam}
-                    onChange={(val) => setSelectedTeam(val)}
-                >
-                    <Option value="All nodes">All nodes</Option>
-                    <Option value="lab_test">lab_test</Option>
-                    <Option value="other_team">other_team</Option>
-                </Select>
-                <Input
-                    style={{ width: 250 }}
-                    placeholder="Search name, nodename, UUID"
-                    value={searchValue}
-                    onChange={(e) => setSearchValue(e.target.value)}
-                />
-            </Space> */}
-
             <div style={{ marginBottom: 16 }}>
                 <Button onClick={downloadClient}>Add nodes</Button>
             </div>
 
             <Table
-                rowKey="id"
+                rowKey="ID"
                 rowSelection={rowSelection}
                 columns={columns}
                 dataSource={filteredNodes}

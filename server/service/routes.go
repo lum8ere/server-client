@@ -20,7 +20,7 @@ func RegisterRoutes(r *mux.Router, s *Service) {
 	r.HandleFunc("/clientappsdata", s.clientAppsDataHandler)
 	r.HandleFunc("/wsAudio", s.wsAudioHandler)
     r.HandleFunc("/wsAudioListen", s.wsAudioListenHandler)
-	r.HandleFunc("/download/client", s.downloadClientHandler)
+	
 
 	//for upload
 	uploader := r.PathPrefix("/upload").Subrouter()
@@ -33,6 +33,10 @@ func RegisterRoutes(r *mux.Router, s *Service) {
 	r.HandleFunc("/command", s.commandHandler)
 	r.HandleFunc("/api/time", timeHandler)
 	r.HandleFunc("/map", s.mapHandler)
+
+	// api handlers для фронта
+	r.HandleFunc("/api/download/client", s.downloadClientHandler)
+	r.HandleFunc("/api/clients", s.GetClients)
 
 	// r.Handle("/uploads", http.StripPrefix("/uploads/", http.FileServer(http.Dir(s.uploadPath))))
 	r.PathPrefix("/uploads/").Handler(

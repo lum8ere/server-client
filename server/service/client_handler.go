@@ -14,6 +14,7 @@ type Client struct {
 	ID      string
 	Conn    *websocket.Conn
 	IP      string
+	Status  string
 	Metrics Metrics
 	AppsServices string // Здесь будем сохранять JSON-строку с данными
 }
@@ -47,6 +48,19 @@ func (s *Service) clientsHandler(w http.ResponseWriter, r *http.Request) {
 	tmpl.Execute(w, clients)
 }
 
+func (s *Service) GetClients(w http.ResponseWriter, r *http.Request) {
+	s.m.Lock()
+	clients := slices.Collect(maps.Values(s.clients))
+	s.m.Unlock()
+
+	clientsData, err := json.Marshal(clients)
+	if err != nil {
+		http.Error(w, "Ошибка сериализации", http.StatusInternalServerError)
+		return
+	}
+	w.Write(clientsData)
+}
+
 func (s *Service) clientAppsDataHandler(w http.ResponseWriter, r *http.Request) {
 	clientID := r.URL.Query().Get("client")
 	if clientID == "" {
@@ -72,8 +86,6 @@ func (s *Service) clientAppsDataHandler(w http.ResponseWriter, r *http.Request) 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(client.AppsServices))
 }
-
-
 type Metrics struct {
 	DiskTotal       uint64 `json:"disk_total"`
 	DiskFree        uint64 `json:"disk_free"`
@@ -84,6 +96,7 @@ type Metrics struct {
 	HasPassword     bool   `json:"has_password"`
 	MinimumPasswordLenght int `json:"minimum_password_lenght"`
 	Error           string `json:"error,omitempty"`
+	PcName 			string `json:"pc_name,omitempty"`
 }
 
 var nilMetrics Metrics

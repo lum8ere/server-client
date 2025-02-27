@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
 
@@ -18,6 +19,7 @@ const (
 
 func main() {
 	logger := log.New(os.Stdout, "SERVER: ", log.Ldate|log.Ltime|log.Lshortfile)
+
 	if err := os.MkdirAll(uploadPath, os.ModePerm); err != nil {
 		logger.Fatalf("Ошибка создания директории: %v", err)
 	}
@@ -27,11 +29,16 @@ func main() {
 	s := service.New(logger, uploadPath)
 
 	r := mux.NewRouter()
-
 	service.RegisterRoutes(r, s)
 
+	corsObj := handlers.CORS(
+        handlers.AllowedOrigins([]string{"http://localhost:3000"}),
+        handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
+        handlers.AllowedHeaders([]string{"Content-Type", "Authorization"}),
+    )
+
 	srv := &http.Server{
-		Handler:      r,
+		Handler:      corsObj(r),
 		Addr:         "127.0.0.1:4000",
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,

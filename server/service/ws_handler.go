@@ -42,7 +42,8 @@ func (s *Service) wsHandler(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		s.m.Lock()
 		conn.Close()
-		delete(s.clients, clientID)
+		// delete(s.clients, clientID)
+		client.Status = "offline"
 		s.m.Unlock()
 		s.logger.Printf("WebSocket клиент %s отключён", clientID)
 	}()
@@ -69,6 +70,26 @@ func (s *Service) wsHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			switch cm.Command {
+			case "init_info":
+				type InitData struct {
+					IP      string  `json:"ip"`
+					Metrics Metrics `json:"metrics"`
+				}
+				var initData InitData
+				if err := json.Unmarshal(cm.Data, &initData); err != nil {
+					s.logger.Printf("Ошибка декодирования init_info от клиента %s: %v", clientID, err)
+					continue
+				}
+
+				// Сохраняем IP
+				client.IP = initData.IP
+				// Сохраняем метрики
+				client.Metrics = initData.Metrics
+				client.Status = "online"
+
+				s.logger.Printf("Client %s: init_info получен. IP=%s, Metrics=%+v",
+					clientID, initData.IP, initData.Metrics)
+
 			case "metrics":
 				var m Metrics
 				if err := json.Unmarshal(cm.Data, &m); err != nil {
