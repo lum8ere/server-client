@@ -27,7 +27,7 @@ func (s *Service) wsHandler(w http.ResponseWriter, r *http.Request) {
 
 	s.clientCounter.Add(1)
 	clientID := fmt.Sprintf("client-%d", s.clientCounter.Load())
-	client := Client{ID: clientID, Conn: conn, IP: ""}
+	client := &Client{ID: clientID, Conn: conn, IP: ""}
 
 	s.m.Lock()
 	s.clients[clientID] = client
@@ -59,6 +59,7 @@ func (s *Service) wsHandler(w http.ResponseWriter, r *http.Request) {
 			ip := strings.TrimPrefix(msgStr, "ip:")
 			client.IP = ip
 			s.logger.Printf("Сохранён публичный IP для клиента %s: %s", clientID, ip)
+			
 
 		} else if strings.HasPrefix(msgStr, "{") {
 			var cm ClientMessage
@@ -75,6 +76,7 @@ func (s *Service) wsHandler(w http.ResponseWriter, r *http.Request) {
 				}
 				client.Metrics = m
 				s.logger.Printf("Получены метрики от клиента %s: %+v", clientID, m)
+			
 
 			default:
 				s.logger.Printf("Неизвестная команда JSON от клиента %s: %s", clientID, cm.Command)
