@@ -1,6 +1,4 @@
-.PHONY fmt
-
-
+.PHONY: 
 
 fmt:
 	go fmt ./...
