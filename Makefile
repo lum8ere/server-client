@@ -1,5 +1,22 @@
 .PHONY: client server frontend all
 
+COMPOSE_FILE=docker-compose.yml
+
+# Команды для управления контейнерами
+up:
+	docker-compose -f $(COMPOSE_FILE) up -d
+
+down:
+	docker-compose -f $(COMPOSE_FILE) down
+
+restart:
+	@make down
+	@make up
+
+build:
+	docker-compose -f $(COMPOSE_FILE) build
+
+# Команды для запуска сервисов
 client:
 	@echo "Launching the Python client..."
 	cd client && python -m client.main

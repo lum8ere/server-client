@@ -1,9 +1,9 @@
 package main
 
 import (
-	"backed-api-v2/libs/3_infrastructure/db_manager"
-	"backed-api-v2/libs/4_common/env_vars"
-	"backed-api-v2/libs/4_common/smart_context"
+	"backed-api-v2/libs/4_infrastructure/db_manager"
+	"backed-api-v2/libs/5_common/env_vars"
+	"backed-api-v2/libs/5_common/smart_context"
 	"os"
 
 	"gorm.io/gen"
@@ -27,7 +27,7 @@ func main() {
 	logger = logger.WithDB(dbm.GetGORM())
 
 	g := gen.NewGenerator(gen.Config{
-		OutPath: "./libs/2_generated_models/query",
+		OutPath: "./libs/3_generated_models/query",
 		Mode:    gen.WithoutContext | gen.WithDefaultQuery | gen.WithQueryInterface, // generate mode
 	})
 
