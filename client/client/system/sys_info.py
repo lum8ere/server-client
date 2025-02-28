@@ -9,24 +9,14 @@ def current_user_has_password() -> bool:
     ps_command = f'Get-LocalUser -Name "{username}" | Select-Object -ExpandProperty PasswordRequired'
     command = ['powershell', '-Command', ps_command]
     try:
-        output = subprocess.check_output(
-            command,
-            stderr=subprocess.STDOUT,
-            text=True,
-            timeout=10
-        ).strip().lower()
+        output = subprocess.check_output(command, stderr=subprocess.STDOUT, text=True, timeout=10).strip().lower()
         return output == 'true'
     except Exception:
         return False
 
 def get_min_password_length() -> int:
     try:
-        output = subprocess.check_output(
-            ['net', 'accounts'],
-            stderr=subprocess.STDOUT,
-            text=True,
-            timeout=10
-        )
+        output = subprocess.check_output(['net', 'accounts'], stderr=subprocess.STDOUT, text=True, timeout=10)
         for line in output.splitlines():
             if "Minimum password length" in line:
                 return int(line.split()[-1])

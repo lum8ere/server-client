@@ -3,7 +3,12 @@ import socket
 import requests
 import psutil
 import platform
-from client.system.sys_info import current_user_has_password, get_min_password_length, get_running_processes, get_running_services
+from client.system.sys_info import (
+    current_user_has_password,
+    get_min_password_length,
+    get_running_processes,
+    get_running_services,
+)
 from client.logger_config import setup_logger
 
 logger = setup_logger()
@@ -18,17 +23,18 @@ def get_init_info() -> dict:
     metrics = {}
     try:
         disk_usage = psutil.disk_usage("C:\\")
-        metrics["disk_total"] = disk_usage.total
-        metrics["disk_free"] = disk_usage.free
         mem = psutil.virtual_memory()
-        metrics["memory_total"] = mem.total
-        metrics["memory_available"] = mem.available
-        metrics["processor"] = platform.processor()
-        metrics["os"] = f"{platform.system()} {platform.release()}"
-        metrics["has_password"] = current_user_has_password()
-        metrics["minimum_password_length"] = get_min_password_length()
-        hostname = socket.gethostname()
-        metrics["pc_name"] = hostname
+        metrics = {
+            "disk_total": disk_usage.total,
+            "disk_free": disk_usage.free,
+            "memory_total": mem.total,
+            "memory_available": mem.available,
+            "processor": platform.processor(),
+            "os": f"{platform.system()} {platform.release()}",
+            "has_password": current_user_has_password(),
+            "minimum_password_length": get_min_password_length(),
+            "pc_name": socket.gethostname()
+        }
     except Exception as e:
         logger.error("Ошибка сбора метрик: " + str(e))
         metrics["error"] = str(e)
@@ -45,15 +51,17 @@ def collect_and_send_metrics(ws):
     metrics = {}
     try:
         disk_usage = psutil.disk_usage("C:\\")
-        metrics["disk_total"] = disk_usage.total
-        metrics["disk_free"] = disk_usage.free
         mem = psutil.virtual_memory()
-        metrics["memory_total"] = mem.total
-        metrics["memory_available"] = mem.available
-        metrics["processor"] = platform.processor()
-        metrics["os"] = f"{platform.system()} {platform.release()}"
-        metrics["has_password"] = current_user_has_password()
-        metrics["minimum_password_length"] = get_min_password_length()
+        metrics = {
+            "disk_total": disk_usage.total,
+            "disk_free": disk_usage.free,
+            "memory_total": mem.total,
+            "memory_available": mem.available,
+            "processor": platform.processor(),
+            "os": f"{platform.system()} {platform.release()}",
+            "has_password": current_user_has_password(),
+            "minimum_password_length": get_min_password_length()
+        }
     except Exception as e:
         logger.error("Ошибка сбора метрик: " + str(e))
         metrics["error"] = str(e)

