@@ -5,10 +5,10 @@ def setup_logger():
     if not logger.handlers:
         logger.setLevel(logging.INFO)
         formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
-        file_handler = logging.FileHandler("client.log")
-        file_handler.setFormatter(formatter)
+        # file_handler = logging.FileHandler("client.log")
+        # file_handler.setFormatter(formatter)
         stream_handler = logging.StreamHandler()
         stream_handler.setFormatter(formatter)
-        logger.addHandler(file_handler)
+        # logger.addHandler(file_handler)
         logger.addHandler(stream_handler)
     return logger
