@@ -1,6 +1,6 @@
 package smart_context
 
-import "backed-api-v2/libs/4_common/types"
+import "backed-api-v2/libs/5_common/types"
 
 const SESSION_ID_KEY = "session_id"
 

@@ -1,7 +1,7 @@
 package smart_context
 
 import (
-	"backed-api-v2/libs/4_common/types"
+	"backed-api-v2/libs/5_common/types"
 	"context"
 
 	"go.uber.org/zap"
