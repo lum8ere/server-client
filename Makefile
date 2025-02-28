@@ -16,6 +16,6 @@ frontend:
 all:
 	@echo "Launching the server, client, and frontend..."
 	(cd server && go run main.go) & \
-	($(PYTHON) -m client.main) & \
+	(cd client && python -m client.main) & \
 	(cd frontend-v1 && npm start) & \
 	wait
