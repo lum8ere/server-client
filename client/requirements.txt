@@ -1,0 +1,6 @@
+opencv-python
+requests
+mss
+websocket-client
+psutil
+pyaudio

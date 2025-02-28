@@ -1,7 +1,10 @@
 .PHONY: build
 
-run:
+run-old:
 	py client.py
+
+run:
+	python -m client.main
 
 build:
 	pyinstaller --onefile -w --uac-admin client.py 
