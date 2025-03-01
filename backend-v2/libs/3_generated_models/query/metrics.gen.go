@@ -16,7 +16,7 @@ import (
 
 	"gorm.io/plugin/dbresolver"
 
-	"backed-api-v2/apps/gen-type/libs/3_generated_models/model"
+	"backed-api-v2/libs/3_generated_models/model"
 )
 
 func newMetric(db *gorm.DB, opts ...gen.DOOption) metric {

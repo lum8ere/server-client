@@ -27,7 +27,7 @@ func main() {
 	logger = logger.WithDB(dbm.GetGORM())
 
 	g := gen.NewGenerator(gen.Config{
-		OutPath: "./libs/3_generated_models/query",
+		OutPath: "../../libs/3_generated_models/query",
 		Mode:    gen.WithoutContext | gen.WithDefaultQuery | gen.WithQueryInterface, // generate mode
 	})
 
