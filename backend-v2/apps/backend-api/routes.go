@@ -3,6 +3,8 @@ package main
 import (
 	"backed-api-v2/libs/1_application/ws_server"
 	"backed-api-v2/libs/2_domain_methods/handlers/auth"
+	"backed-api-v2/libs/2_domain_methods/handlers/test_handlers"
+	"backed-api-v2/libs/2_domain_methods/run_processor"
 	"backed-api-v2/libs/5_common/rest_middleware"
 	"backed-api-v2/libs/5_common/smart_context"
 	"runtime"
@@ -14,8 +16,7 @@ import (
 
 func initRoutes(sctx smart_context.ISmartContext) (*chi.Mux, error) {
 	r := chi.NewRouter()
-	// Basic CORS
-	// for more ideas, see: https://developer.github.com/v3/#cross-origin-resource-sharing
+
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins: []string{"https://*", "http://*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"},
@@ -26,6 +27,7 @@ func initRoutes(sctx smart_context.ISmartContext) (*chi.Mux, error) {
 	}))
 
 	r.Post("/auth/login", rest_middleware.WithRestApiSmartContext(sctx, auth.LoginHandler))
+	r.Get("/rnd", run_processor.WrapHandlerWithReturnAndParams(sctx, test_handlers.RndHandler))
 
 	// pprof
 	runtime.SetMutexProfileFraction(1)
