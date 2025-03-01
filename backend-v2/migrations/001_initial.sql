@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS devices (
     id TEXT PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
     device_identifier TEXT NOT NULL UNIQUE,
-    user_id TEXT REFERENCES users(id),
+    -- user_id TEXT REFERENCES users(id), ВОПРОС НУЖНО ЛИ
     description TEXT,
     status TEXT REFERENCES statuses(code),
     last_seen TIMESTAMP,

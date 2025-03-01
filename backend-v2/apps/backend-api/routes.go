@@ -29,6 +29,10 @@ func initRoutes(sctx smart_context.ISmartContext) (*chi.Mux, error) {
 	r.Post("/auth/login", rest_middleware.WithRestApiSmartContext(sctx, auth.LoginHandler))
 	r.Get("/rnd", run_processor.WrapHandlerWithReturnAndParams(sctx, test_handlers.RndHandler))
 
+	// r.Post("/devices/register", rest_middleware.WithRestApiSmartContext(sctx, devices.RegisterDeviceHandler))
+	// // Прием метрик
+	// r.Post("/metrics", rest_middleware.WithRestApiSmartContext(sctx, metrics.ReceiveMetricsHandler))
+
 	// pprof
 	runtime.SetMutexProfileFraction(1)
 	r.Mount("/debug", chi_middleware.Profiler())

@@ -1,10 +1,13 @@
 package types
 
 import (
+	"database/sql/driver"
 	"encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
+
+	"gorm.io/datatypes"
 )
 
 type ANY_DATA map[string]any
@@ -35,6 +38,26 @@ func (j *ANY_DATA) DeepCopy() (ANY_DATA, error) {
 
 func (a ANY_DATA) ToMap() map[string]any {
 	return map[string]any(a)
+}
+
+func (a ANY_DATA) Value() (driver.Value, error) {
+	if a == nil { // Return NULL if the map is nil
+		return nil, nil
+	}
+
+	// Serialize the JSON
+	jsonData, err := json.Marshal(a)
+	if err != nil {
+		return nil, fmt.Errorf("json marshal failed: %w", err)
+	}
+
+	z := datatypes.JSON{}
+	err = z.Scan(jsonData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to scan JSON: %w", err)
+	}
+
+	return z.Value()
 }
 
 func (a *ANY_DATA) Scan(value interface{}) error {

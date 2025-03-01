@@ -12,7 +12,7 @@ logger = LoggerService()
 def main():
     logger.info("Starting clientv2 application...")
 
-    # Создаем экземпляр WebSocket клиента
+    # Создаем экземпляр WebSocket клиента (он отправит регистрацию при установке соединения)
     ws_client = WSClient()
     # Устанавливаем callback для входящих сообщений (команд)
     ws_client.on_message_callback = lambda msg: process_command(msg, logger)

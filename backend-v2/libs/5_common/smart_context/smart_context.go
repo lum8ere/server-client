@@ -146,6 +146,10 @@ func (sc *SmartContext) LogFields(fields types.Fields) ISmartContext {
 	return newPc
 }
 
+func (sc *SmartContext) GetDataFields() types.Fields {
+	return sc.dataFields
+}
+
 func (sc *SmartContext) Warn(args ...interface{}) {
 	sc.logger.Warn(args...)
 }

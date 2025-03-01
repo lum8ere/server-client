@@ -3,6 +3,7 @@ import time
 import websocket
 from clientV2.config import settings
 from clientV2.core.services.logger_service import LoggerService
+from clientV2.utils.device_id import get_device_id
 
 logger = LoggerService()
 
@@ -37,7 +38,9 @@ class WSClient:
     def on_open(self, ws):
         with self.lock:
             self.connected = True
-        logger.info("WebSocket connection established.")
+        device_id = get_device_id()
+        logger.info(f"WebSocket connection established. Registering device with ID: {device_id}")
+        ws.send(f"register:{device_id}")
 
     def on_message(self, ws, message):
         logger.info(f"Message received: {message}")
