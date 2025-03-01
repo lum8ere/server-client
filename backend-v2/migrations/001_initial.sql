@@ -1,5 +1,3 @@
--- migrations/001_initial.sql
-
 CREATE TABLE IF NOT EXISTS roles (
     id TEXT PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
     name TEXT NOT NULL UNIQUE,
@@ -7,10 +5,10 @@ CREATE TABLE IF NOT EXISTS roles (
 );
 
 -- статус: pending, sent, executed, error, online, offline
-CREATE TABLE IF NOT EXISTS command_statuses (
+CREATE TABLE IF NOT EXISTS statuses (
     id TEXT PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
     name TEXT,
-    code TEXT NOT NULL,
+    code TEXT NOT NULL UNIQUE,
     context TEXT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -32,7 +30,7 @@ CREATE TABLE IF NOT EXISTS devices (
     device_identifier TEXT NOT NULL UNIQUE,
     user_id TEXT REFERENCES users(id),
     description TEXT,
-    status TEXT,
+    status TEXT REFERENCES statuses(code),
     last_seen TIMESTAMP,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
@@ -62,12 +60,10 @@ CREATE TABLE IF NOT EXISTS metrics (
 -- Таблица команд, отправленных устройствам
 CREATE TABLE IF NOT EXISTS commands (
     id TEXT PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-    name ,
-    code ,
     command_type TEXT NOT NULL,
     parameters JSONB,
-    initiator INTEGER REFERENCES users(id),
-    status TEXT REFERENCES command_statuses(code) NOT NULL DEFAULT 'pending', 
+    initiator TEXT REFERENCES users(id),
+    status TEXT REFERENCES statuses(code) ON DELETE SET NULL, 
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     executed_at TIMESTAMP
 );
@@ -78,4 +74,3 @@ CREATE TABLE IF NOT EXISTS device_groups (
     description TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
-

@@ -1,5 +1,3 @@
-.PHONY: client server frontend all
-
 COMPOSE_FILE=docker-compose.yml
 
 # Команды для управления контейнерами
@@ -15,6 +13,10 @@ restart:
 
 build:
 	docker-compose -f $(COMPOSE_FILE) build
+
+# Генерация типов через GORM
+gen-type:
+	cd backend-v2/apps/gen-type && go run .
 
 # Команды для запуска сервисов
 client:
