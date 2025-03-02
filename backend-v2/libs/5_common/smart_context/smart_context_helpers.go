@@ -33,3 +33,17 @@ func (sc *SmartContext) GetWaitGroup() *sync.WaitGroup {
 
 	return result
 }
+
+const DEVICE_ID_KEY = "device_identifier"
+
+func (sc *SmartContext) WithDeviceIdentifier(deviceID string) ISmartContext {
+	return sc.WithField(DEVICE_ID_KEY, deviceID)
+}
+
+func (sc *SmartContext) GetDeviceIdentifier() string {
+	result, ok := types.GetFieldTypedValue[string](sc.dataFields, DEVICE_ID_KEY)
+	if !ok {
+		return ""
+	}
+	return result
+}

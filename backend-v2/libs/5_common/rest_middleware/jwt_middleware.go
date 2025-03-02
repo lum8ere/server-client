@@ -38,6 +38,19 @@ func WithSessionId(handler SmartHandlerFunc) SmartHandlerFunc {
 	}
 }
 
+// WithDeviceId извлекает из заголовка X-Device-Identifier или генерирует новый, и добавляет его в smart_context.
+func WithDeviceIdentifier(handler SmartHandlerFunc) SmartHandlerFunc {
+	return func(sctx smart_context.ISmartContext, w http.ResponseWriter, r *http.Request) {
+		deviceId := r.Header.Get("X-Device-Identifier") // МЫ СЧИТАЕМ ЧТО ОН ВСЕГД БУДЕТ
+		if deviceId == "" {
+			deviceId = ""
+		}
+		sctx = sctx.WithDeviceIdentifier(deviceId)
+		w.Header().Set("X-Device-Identifier", deviceId)
+		handler(sctx, w, r)
+	}
+}
+
 // WithRecoverer оборачивает обработчик, отлавливая возможные panics.
 func WithRecoverer(handler SmartHandlerFunc) SmartHandlerFunc {
 	return func(sctx smart_context.ISmartContext, w http.ResponseWriter, r *http.Request) {
@@ -53,39 +66,33 @@ func WithRecoverer(handler SmartHandlerFunc) SmartHandlerFunc {
 
 // WithRestApiSmartContext объединяет цепочку middleware и возвращает стандартный http.HandlerFunc.
 func WithRestApiSmartContext(sctx smart_context.ISmartContext, handler SmartHandlerFunc) http.HandlerFunc {
-	// Собираем цепочку: сначала WithRecoverer, затем WithSessionId, затем WithRequestId.
-	chain := WithRecoverer(WithSessionId(WithRequestId(handler)))
+	// Собираем цепочку: WithRecoverer, затем WithSessionId, WithRequestId и WithDeviceIdentifier.
+	chain := WithRecoverer(WithSessionId(WithRequestId(WithDeviceIdentifier(handler))))
 	return func(w http.ResponseWriter, r *http.Request) {
 		chain(sctx, w, r)
 	}
 }
 
-// Пример для WebSocket можно сделать аналогичным образом, исключая, например, кэш-менеджер.
+// Аналогичная обёртка для WebSocket, если требуется.
 func WithWsApiSmartContext(sctx smart_context.ISmartContext, handler SmartHandlerFunc) http.HandlerFunc {
-	chain := WithRecoverer(WithSessionId(WithRequestId(handler)))
+	chain := WithRecoverer(WithSessionId(WithRequestId(WithDeviceIdentifier(handler))))
 	return func(w http.ResponseWriter, r *http.Request) {
 		chain(sctx, w, r)
 	}
 }
 
-func WithWaitGroup(
-	smartHandler SmartHandlerFunc,
-) SmartHandlerFunc {
+// WithWaitGroup добавляет обработку waitgroup.
+func WithWaitGroup(smartHandler SmartHandlerFunc) SmartHandlerFunc {
 	return func(sctx smart_context.ISmartContext, w http.ResponseWriter, r *http.Request) {
-		// check if we should stop processing the request
-		serverCtx := sctx.GetContext()
-		if serverCtx != nil {
-			serverCtxErr := serverCtx.Err()
-			if serverCtxErr != nil {
-				sctx.Warnf("Server context is closed: %v. Cannot run request", serverCtxErr)
-				http.Error(w, "Server context is closed", http.StatusServiceUnavailable)
-				return
-			}
+		// Проверяем, не закрыт ли контекст сервера.
+		if err := sctx.GetContext().Err(); err != nil {
+			sctx.Warnf("Server context is closed: %v. Cannot run request", err)
+			http.Error(w, "Server context is closed", http.StatusServiceUnavailable)
+			return
 		}
 
-		// add WaitGroup counter
-		wg := sctx.GetWaitGroup()
-		if wg != nil {
+		// Добавляем счетчик waitgroup, если он есть.
+		if wg := sctx.GetWaitGroup(); wg != nil {
 			wg.Add(1)
 			defer wg.Done()
 		}

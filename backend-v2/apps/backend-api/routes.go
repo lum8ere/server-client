@@ -28,6 +28,7 @@ func initRoutes(sctx smart_context.ISmartContext) (*chi.Mux, error) {
 
 	r.Post("/auth/login", rest_middleware.WithRestApiSmartContext(sctx, auth.LoginHandler))
 	r.Get("/rnd", run_processor.WrapHandlerWithReturnAndParams(sctx, test_handlers.RndHandler))
+	r.Get("/rnd2", run_processor.WrapSmartHandler(sctx, test_handlers.RndHandler2))
 
 	// r.Post("/devices/register", rest_middleware.WithRestApiSmartContext(sctx, devices.RegisterDeviceHandler))
 	// // Прием метрик

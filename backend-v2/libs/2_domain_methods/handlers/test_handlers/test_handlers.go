@@ -21,3 +21,15 @@ func RndHandler(sctx smart_context.ISmartContext, params types.ANY_DATA, w http.
 	sctx.Infof("RndHandler finished with result: %v", result)
 	return types.AnyDataRef(result), nil
 }
+
+func RndHandler2(sctx smart_context.ISmartContext, args types.ANY_DATA) (*types.ANY_DATA, error) {
+	sctx.Infof("RndHandler started with args: %v", args)
+	randomFloat := rand.Float64()
+	result := types.ANY_DATA{
+		"result": fmt.Sprintf("%f", randomFloat),
+		// Можно добавить возвращаемые параметры или echo входных параметров
+		"received_params": args,
+	}
+	sctx.Infof("RndHandler finished with result: %v", result)
+	return types.AnyDataRef(result), nil
+}

@@ -21,9 +21,11 @@ class WSClient:
     def connect(self):
         while not self.stop_event.is_set():
             try:
-                logger.info(f"Connecting to {self.url}")
+                device_id = get_device_id()
+                logger.info(f"Connecting to {self.url} with device_id: {device_id}")
                 self.ws = websocket.WebSocketApp(
                     self.url,
+                    header=[f"X-Device-Identifier: {device_id}"],
                     on_open=self.on_open,
                     on_message=self.on_message,
                     on_error=self.on_error,
@@ -38,9 +40,7 @@ class WSClient:
     def on_open(self, ws):
         with self.lock:
             self.connected = True
-        device_id = get_device_id()
-        logger.info(f"WebSocket connection established. Registering device with ID: {device_id}")
-        ws.send(f"register:{device_id}")
+        logger.info(f"WebSocket connection established")
 
     def on_message(self, ws, message):
         logger.info(f"Message received: {message}")

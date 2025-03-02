@@ -31,6 +31,9 @@ type ISmartContext interface {
 
 	GetLogger() *zap.Logger
 
+	WithDeviceIdentifier(deviceID string) ISmartContext
+	GetDeviceIdentifier() string
+
 	GetDataFields() types.Fields
 
 	WithDbManager(db IDbManager) ISmartContext
