@@ -39,18 +39,18 @@ func WithSessionId(handler SmartHandlerFunc) SmartHandlerFunc {
 }
 
 // WithDeviceId извлекает из заголовка X-Device-Identifier или генерирует новый, и добавляет его в smart_context.
-func WithDeviceIdentifier(handler SmartHandlerFunc) SmartHandlerFunc {
-	return func(sctx smart_context.ISmartContext, w http.ResponseWriter, r *http.Request) {
-		deviceId := r.Header.Get("X-Device-Identifier") // МЫ СЧИТАЕМ ЧТО ОН ВСЕГД БУДЕТ
-		if deviceId == "" {
-			http.Error(w, "Missing X-Device-Identifier header", http.StatusBadRequest)
-			return
-		}
-		sctx = sctx.WithDeviceIdentifier(deviceId)
-		w.Header().Set("X-Device-Identifier", deviceId)
-		handler(sctx, w, r)
-	}
-}
+// func WithDeviceIdentifier(handler SmartHandlerFunc) SmartHandlerFunc {
+// 	return func(sctx smart_context.ISmartContext, w http.ResponseWriter, r *http.Request) {
+// 		deviceId := r.Header.Get("X-Device-Identifier") // МЫ СЧИТАЕМ ЧТО ОН ВСЕГД БУДЕТ
+// 		if deviceId == "" {
+// 			http.Error(w, "Missing X-Device-Identifier header", http.StatusBadRequest)
+// 			return
+// 		}
+// 		sctx = sctx.WithDeviceIdentifier(deviceId)
+// 		w.Header().Set("X-Device-Identifier", deviceId)
+// 		handler(sctx, w, r)
+// 	}
+// }
 
 // WithRecoverer оборачивает обработчик, отлавливая возможные panics.
 func WithRecoverer(handler SmartHandlerFunc) SmartHandlerFunc {
@@ -68,7 +68,7 @@ func WithRecoverer(handler SmartHandlerFunc) SmartHandlerFunc {
 // WithRestApiSmartContext объединяет цепочку middleware и возвращает стандартный http.HandlerFunc.
 func WithRestApiSmartContext(sctx smart_context.ISmartContext, handler SmartHandlerFunc) http.HandlerFunc {
 	// Собираем цепочку: WithRecoverer, затем WithSessionId, WithRequestId и WithDeviceIdentifier.
-	chain := WithRecoverer(WithSessionId(WithRequestId(WithDeviceIdentifier(handler))))
+	chain := WithRecoverer(WithSessionId(WithRequestId(handler)))
 	return func(w http.ResponseWriter, r *http.Request) {
 		chain(sctx, w, r)
 	}
@@ -76,7 +76,7 @@ func WithRestApiSmartContext(sctx smart_context.ISmartContext, handler SmartHand
 
 // Аналогичная обёртка для WebSocket, если требуется.
 func WithWsApiSmartContext(sctx smart_context.ISmartContext, handler SmartHandlerFunc) http.HandlerFunc {
-	chain := WithRecoverer(WithSessionId(WithRequestId(WithDeviceIdentifier(handler))))
+	chain := WithRecoverer(WithSessionId(WithRequestId(handler)))
 	return func(w http.ResponseWriter, r *http.Request) {
 		chain(sctx, w, r)
 	}

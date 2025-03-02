@@ -5,11 +5,11 @@ import (
 	"backed-api-v2/libs/5_common/env_vars"
 	"backed-api-v2/libs/5_common/safe_go"
 	"backed-api-v2/libs/5_common/smart_context"
+	"backed-api-v2/libs/5_common/ws_registry"
 	"compress/flate"
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -22,6 +22,12 @@ type Message struct {
 	Sctx smart_context.ISmartContext // чтобы логгировать под тем же request id
 	Type int                         // WebSocket message type (e.g., TextMessage, PingMessage)
 	Data []byte                      // Actual message data
+}
+
+type WSMessage struct {
+	Action    string          `json:"action"`
+	DeviceKey string          `json:"device_key,omitempty"`
+	Payload   json.RawMessage `json:"payload,omitempty"`
 }
 
 type WsUpgrader struct {
@@ -98,18 +104,15 @@ func (u *WsUpgrader) HandleWebSocket(sctx smart_context.ISmartContext, w http.Re
 	defer cancelSessionCtx()
 	sctx = sctx.WithContext(sessionCtx)
 
-	var regErr error
-	sctx, regErr = registerDevice(sctx)
-	if regErr != nil {
-		sctx.Errorf("Device registration failed: %v", regErr)
-		conn.Close()
-		return
-	}
-
 	defer func() {
 		sctx.Infof("WebSocket connection: defer block: closing messages channel")
 		close(messageChan)
 	}()
+
+	// Переменная для хранения зарегистрированного device key,
+	// полученного из сообщения "register_device"
+	// TODO: решить проблему с локально переменой. Придумать куда сохранять это
+	var registeredDeviceKey string
 
 	safe_go.SafeGo(sctx, func() {
 		// Канал запроектся только в defer когда все писатели запишут туда что хотели и завершат свою работу (wg опустет)
@@ -155,7 +158,7 @@ func (u *WsUpgrader) HandleWebSocket(sctx smart_context.ISmartContext, w http.Re
 		sctx.Infof("WebSocket connection: connection closed (%d - %s)", code, text)
 		// Если соединение закрыто клиентом, обновляем статус устройства на OFFLINE.
 		if code == websocket.CloseNormalClosure || code == websocket.CloseGoingAway {
-			setDeviceStatusOffline(sctx)
+			setDeviceStatusOffline(sctx, registeredDeviceKey)
 		}
 		return nil
 	})
@@ -203,8 +206,15 @@ func (u *WsUpgrader) HandleWebSocket(sctx smart_context.ISmartContext, w http.Re
 
 			sctx.Debugf("Received %s", messageTypeToString(messageType))
 			if messageType == websocket.TextMessage {
-				// Обрабатываем текстовое сообщение: если начинается с "register:", то вызываем processWsMessage.
-				processWsMessage(sctx, string(messageData))
+				// TODO: переработать вот это. Выглядит ужастно
+				var wsMsg WSMessage
+				if err := json.Unmarshal(messageData, &wsMsg); err != nil {
+					sctx.Errorf("Error unmarshalling WebSocket message: %v", err)
+					continue
+				}
+
+				handleWsActionMessage(sctx, conn, wsMsg)
+				registeredDeviceKey = wsMsg.DeviceKey
 			} else {
 				// Для других типов сообщений можно добавить дополнительную обработку
 				sctx.Infof("Non-text message received")
@@ -340,45 +350,45 @@ func (u *WsUpgrader) writePump(conn *websocket.Conn, messageChan chan Message, s
 	}
 }
 
-// processWsMessage обрабатывает входящие текстовые сообщения.
-func processWsMessage(sctx smart_context.ISmartContext, msg string) {
-	// Извлекаем фактический device_id, сохранённый при регистрации
-	deviceDBID, ok := sctx.GetDataFields().GetField("device_id")
-	if !ok || deviceDBID == "" {
-		sctx.Warn("No device_id found in context, cannot process message")
-		return
-	}
-	// Приводим к строке
-	realDeviceID, _ := deviceDBID.(string)
-
-	// Попытка распарсить сообщение как метрики.
-	var m model.Metric
-	if err := json.Unmarshal([]byte(msg), &m); err == nil {
-		if m.DeviceID == "" {
-			m.DeviceID = realDeviceID
-		}
-		m.CreatedAt = time.Now()
-		if err := sctx.GetDB().Create(&m).Error; err != nil {
-			sctx.Errorf("Error saving metrics for device %s: %v", m.DeviceID, err)
+// handleWsActionMessage обрабатывает полученное сообщение в зависимости от action
+func handleWsActionMessage(sctx smart_context.ISmartContext, conn *websocket.Conn, wsMsg WSMessage) {
+	switch wsMsg.Action {
+	case "register_device":
+		sctx.Infof("Register device action: device_key=%s", wsMsg.DeviceKey)
+		device_id, err := registerDevice(sctx, wsMsg.DeviceKey)
+		if err != nil {
 			return
 		}
-		sctx.Infof("Metrics saved for device: %s", m.DeviceID)
-		return
+
+		registrWSConnection(conn, device_id)
+	case "sent_metrics":
+		var metrics model.Metric
+		if err := json.Unmarshal(wsMsg.Payload, &metrics); err != nil {
+			sctx.Errorf("Error unmarshalling metrics payload: %v", err)
+			return
+		}
+
+		var device model.Device
+		err := sctx.GetDB().Where("device_identifier = ?", wsMsg.DeviceKey).First(&device).Error
+		if err != nil {
+			return
+		}
+
+		metrics.DeviceID = device.ID
+		metrics.CreatedAt = time.Now()
+		if err := sctx.GetDB().Create(&metrics).Error; err != nil {
+			sctx.Errorf("Error saving metrics for device %s: %v", metrics.DeviceID, err)
+			return
+		}
+		sctx.Infof("Metrics saved for device: %s", metrics.DeviceID)
+	default:
+		sctx.Warnf("Unknown action received: %s", wsMsg.Action)
 	}
-	// Если сообщение не метрики, просто логируем его.
-	sctx.Infof("Received WS message: %s", msg)
 }
 
-func registerDevice(sctx smart_context.ISmartContext) (smart_context.ISmartContext, error) {
-	deviceIdentifier := sctx.GetDeviceIdentifier() // device_identifier из заголовка
-	if deviceIdentifier == "" {
-		sctx.Warnf("No device identifier provided in context")
-		return sctx, fmt.Errorf("missing device identifier")
-	}
-
+func registerDevice(sctx smart_context.ISmartContext, deviceIdentifier string) (string, error) {
 	var device model.Device
-	db := sctx.GetDB()
-	err := db.Where("device_identifier = ?", deviceIdentifier).First(&device).Error
+	err := sctx.GetDB().Where("device_identifier = ?", deviceIdentifier).First(&device).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			// Устройство не найдено, создаём новую запись
@@ -390,42 +400,51 @@ func registerDevice(sctx smart_context.ISmartContext) (smart_context.ISmartConte
 				CreatedAt:        time.Now(),
 				UpdatedAt:        time.Now(),
 			}
-			if err := db.Create(&device).Error; err != nil {
+			if err := sctx.GetDB().Create(&device).Error; err != nil {
 				sctx.Errorf("Error registering device %s: %v", deviceIdentifier, err)
-				return sctx, err
+				return "", err
 			}
 			sctx.Infof("Device registered: %s", deviceIdentifier)
 		} else {
 			sctx.Errorf("DB error when processing device %s: %v", deviceIdentifier, err)
-			return sctx, err
+			return "", err
 		}
 	} else {
 		// Устройство найдено, обновляем информацию
 		device.LastSeen = time.Now()
 		device.Status = "ONLINE"
-		if err := db.Save(&device).Error; err != nil {
+		if err := sctx.GetDB().Save(&device).Error; err != nil {
 			sctx.Errorf("Error updating device %s: %v", deviceIdentifier, err)
-			return sctx, err
+			return "", err
 		}
 		sctx.Infof("Device updated: %s", deviceIdentifier)
 	}
 	// Сохраняем фактический device_id (primary key) в контекст под новым ключом
-	sctx = sctx.WithField("device_id", device.ID)
-	sctx.Infof("Saved device_id in context: %v", device.ID)
-	return sctx, nil
+	// sctx = sctx.WithField("device_id", device.ID)
+	// sctx.Infof("Saved device_id in context: %v", device.ID)
+	return device.ID, nil
 }
 
-func setDeviceStatusOffline(sctx smart_context.ISmartContext) error {
-	deviceIdentifier := sctx.GetDeviceIdentifier() // device_identifier из заголовка
-	if deviceIdentifier == "" {
-		sctx.Warnf("No device identifier provided in context")
-		return nil
-	}
-	if err := sctx.GetDB().Model(&model.Device{}).Where("device_identifier = ?", deviceIdentifier).Update("status", "OFFLINE").Error; err != nil {
-		sctx.Errorf("Error updating device %s status to OFFLINE: %v", deviceIdentifier, err)
-	} else {
-		sctx.Infof("Device %s set to OFFLINE", deviceIdentifier)
+func setDeviceStatusOffline(sctx smart_context.ISmartContext, deviceIdentifier string) error {
+	var device model.Device
+	db := sctx.GetDB()
+	if err := db.Where("device_identifier = ?", deviceIdentifier).First(&device).Error; err != nil {
+		sctx.Errorf("Error finding device %s: %v", deviceIdentifier, err)
+		return err
 	}
 
+	if err := db.Model(&device).Update("status", "OFFLINE").Error; err != nil {
+		sctx.Errorf("Error updating device %s status to OFFLINE: %v", deviceIdentifier, err)
+		return err
+	}
+
+	sctx.Infof("Device %s set to OFFLINE; id: %s", deviceIdentifier, device.ID)
+	// Удаляем соединение
+	ws_registry.RemoveClient(device.ID)
+
 	return nil
+}
+
+func registrWSConnection(conn *websocket.Conn, device_id string) {
+	ws_registry.SetClient(device_id, conn)
 }

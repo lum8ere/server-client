@@ -2,6 +2,7 @@ package main
 
 import (
 	"backed-api-v2/libs/1_application/ws_server"
+	"backed-api-v2/libs/2_domain_methods/handlers"
 	"backed-api-v2/libs/2_domain_methods/handlers/auth"
 	"backed-api-v2/libs/2_domain_methods/handlers/test_handlers"
 	"backed-api-v2/libs/2_domain_methods/run_processor"
@@ -18,7 +19,7 @@ func initRoutes(sctx smart_context.ISmartContext) (*chi.Mux, error) {
 	r := chi.NewRouter()
 
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins: []string{"https://*", "http://*"},
+		AllowedOrigins:   []string{"https://*", "http://*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-Requested-With", "X-Request-Id", "X-Session-Id", "X-Api-Key", "X-Auth-Provider"},
 		ExposedHeaders:   []string{"Link"},
@@ -27,8 +28,8 @@ func initRoutes(sctx smart_context.ISmartContext) (*chi.Mux, error) {
 	}))
 
 	r.Post("/auth/login", rest_middleware.WithRestApiSmartContext(sctx, auth.LoginHandler))
-	r.Get("/rnd", run_processor.WrapHandlerWithReturnAndParams(sctx, test_handlers.RndHandler))
-	r.Get("/rnd2", run_processor.WrapSmartHandler(sctx, test_handlers.RndHandler2))
+	r.Get("/rnd2", run_processor.WrapRestApiSmartHandler(sctx, test_handlers.RndHandler2))
+	r.Post("/send_command", run_processor.WrapRestApiSmartHandler(sctx, handlers.SendCommandHandler))
 
 	// r.Post("/devices/register", rest_middleware.WithRestApiSmartContext(sctx, devices.RegisterDeviceHandler))
 	// // Прием метрик

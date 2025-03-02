@@ -35,7 +35,7 @@ def _stream_camera():
             break
         # Здесь можно реализовать отправку кадра через WebSocket или другое действие.
         # Для демонстрации просто ждём для соблюдения частоты кадров.
-        time.sleep(1 / 10)  # например, 10 FPS
+        time.sleep(1 / 24)  # например, 24 FPS
     logger.info("Exiting camera streaming loop.")
 
 def stop_camera_stream():

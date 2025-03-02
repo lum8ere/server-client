@@ -22,6 +22,7 @@ def main():
     def metrics_loop():
         while True:
             metric = collect_metrics()
+            # Формируем сообщение с action "sent_metrics" и payload с метриками
             send_metrics(ws_client, metric, logger)
             time.sleep(settings.METRICS_INTERVAL)
     

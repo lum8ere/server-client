@@ -1,3 +1,4 @@
+import json
 import threading
 import time
 import websocket
@@ -25,7 +26,6 @@ class WSClient:
                 logger.info(f"Connecting to {self.url} with device_id: {device_id}")
                 self.ws = websocket.WebSocketApp(
                     self.url,
-                    header=[f"X-Device-Identifier: {device_id}"],
                     on_open=self.on_open,
                     on_message=self.on_message,
                     on_error=self.on_error,
@@ -40,7 +40,17 @@ class WSClient:
     def on_open(self, ws):
         with self.lock:
             self.connected = True
-        logger.info(f"WebSocket connection established")
+
+        register_message = {
+            "action": "register_device",
+            "device_key": get_device_id()
+        }
+        try:
+            ws.send(json.dumps(register_message))
+            logger.info(f"Sent registration message: {register_message}")
+            logger.info(f"WebSocket connection established")
+        except Exception as e:
+            logger.error(f"Error sending registration message: {e}")
 
     def on_message(self, ws, message):
         logger.info(f"Message received: {message}")
