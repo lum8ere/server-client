@@ -153,6 +153,10 @@ func (u *WsUpgrader) HandleWebSocket(sctx smart_context.ISmartContext, w http.Re
 	// Set close handler to log close messages
 	conn.SetCloseHandler(func(code int, text string) error {
 		sctx.Infof("WebSocket connection: connection closed (%d - %s)", code, text)
+		// Если соединение закрыто клиентом, обновляем статус устройства на OFFLINE.
+		if code == websocket.CloseNormalClosure || code == websocket.CloseGoingAway {
+			setDeviceStatusOffline(sctx)
+		}
 		return nil
 	})
 
@@ -409,4 +413,19 @@ func registerDevice(sctx smart_context.ISmartContext) (smart_context.ISmartConte
 	sctx = sctx.WithField("device_id", device.ID)
 	sctx.Infof("Saved device_id in context: %v", device.ID)
 	return sctx, nil
+}
+
+func setDeviceStatusOffline(sctx smart_context.ISmartContext) error {
+	deviceIdentifier := sctx.GetDeviceIdentifier() // device_identifier из заголовка
+	if deviceIdentifier == "" {
+		sctx.Warnf("No device identifier provided in context")
+		return nil
+	}
+	if err := sctx.GetDB().Model(&model.Device{}).Where("device_identifier = ?", deviceIdentifier).Update("status", "OFFLINE").Error; err != nil {
+		sctx.Errorf("Error updating device %s status to OFFLINE: %v", deviceIdentifier, err)
+	} else {
+		sctx.Infof("Device %s set to OFFLINE", deviceIdentifier)
+	}
+
+	return nil
 }

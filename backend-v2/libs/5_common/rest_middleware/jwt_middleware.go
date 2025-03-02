@@ -43,7 +43,8 @@ func WithDeviceIdentifier(handler SmartHandlerFunc) SmartHandlerFunc {
 	return func(sctx smart_context.ISmartContext, w http.ResponseWriter, r *http.Request) {
 		deviceId := r.Header.Get("X-Device-Identifier") // МЫ СЧИТАЕМ ЧТО ОН ВСЕГД БУДЕТ
 		if deviceId == "" {
-			deviceId = ""
+			http.Error(w, "Missing X-Device-Identifier header", http.StatusBadRequest)
+			return
 		}
 		sctx = sctx.WithDeviceIdentifier(deviceId)
 		w.Header().Set("X-Device-Identifier", deviceId)
