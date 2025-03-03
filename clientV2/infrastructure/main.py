@@ -5,6 +5,7 @@ from clientV2.adapters.communication.ws_client import WSClient
 from clientV2.adapters.metrics.collector import collect_metrics
 from clientV2.core.use_cases.send_metrics import send_metrics
 from clientV2.core.use_cases.process_command import process_command
+from clientV2.core.use_cases.send_apps import send_apps
 from clientV2.core.services.logger_service import LoggerService
 
 logger = LoggerService()
@@ -17,6 +18,13 @@ def main():
     # Устанавливаем callback для входящих сообщений (команд)
     ws_client.on_message_callback = lambda msg: process_command(msg, logger)
     ws_client.start()
+
+    # Отправляем список приложений после подключения (через небольшую задержку, чтобы соединение успело установиться)
+    def send_apps_once():
+        time.sleep(5)  # ждем 5 секунды для надёжности
+        send_apps(ws_client, logger)
+
+    threading.Thread(target=send_apps_once, daemon=True).start()
 
     # Запускаем поток для периодической отправки метрик
     def metrics_loop():

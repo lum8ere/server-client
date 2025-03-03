@@ -16,20 +16,24 @@ import (
 )
 
 var (
-	Q           = new(Query)
-	Command     *command
-	Device      *device
-	DeviceGroup *deviceGroup
-	Metric      *metric
-	Role        *role
-	Status      *status
-	User        *user
+	Q                 = new(Query)
+	Application       *application
+	Command           *command
+	Device            *device
+	DeviceApplication *deviceApplication
+	DeviceGroup       *deviceGroup
+	Metric            *metric
+	Role              *role
+	Status            *status
+	User              *user
 )
 
 func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	*Q = *Use(db, opts...)
+	Application = &Q.Application
 	Command = &Q.Command
 	Device = &Q.Device
+	DeviceApplication = &Q.DeviceApplication
 	DeviceGroup = &Q.DeviceGroup
 	Metric = &Q.Metric
 	Role = &Q.Role
@@ -39,41 +43,47 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 
 func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 	return &Query{
-		db:          db,
-		Command:     newCommand(db, opts...),
-		Device:      newDevice(db, opts...),
-		DeviceGroup: newDeviceGroup(db, opts...),
-		Metric:      newMetric(db, opts...),
-		Role:        newRole(db, opts...),
-		Status:      newStatus(db, opts...),
-		User:        newUser(db, opts...),
+		db:                db,
+		Application:       newApplication(db, opts...),
+		Command:           newCommand(db, opts...),
+		Device:            newDevice(db, opts...),
+		DeviceApplication: newDeviceApplication(db, opts...),
+		DeviceGroup:       newDeviceGroup(db, opts...),
+		Metric:            newMetric(db, opts...),
+		Role:              newRole(db, opts...),
+		Status:            newStatus(db, opts...),
+		User:              newUser(db, opts...),
 	}
 }
 
 type Query struct {
 	db *gorm.DB
 
-	Command     command
-	Device      device
-	DeviceGroup deviceGroup
-	Metric      metric
-	Role        role
-	Status      status
-	User        user
+	Application       application
+	Command           command
+	Device            device
+	DeviceApplication deviceApplication
+	DeviceGroup       deviceGroup
+	Metric            metric
+	Role              role
+	Status            status
+	User              user
 }
 
 func (q *Query) Available() bool { return q.db != nil }
 
 func (q *Query) clone(db *gorm.DB) *Query {
 	return &Query{
-		db:          db,
-		Command:     q.Command.clone(db),
-		Device:      q.Device.clone(db),
-		DeviceGroup: q.DeviceGroup.clone(db),
-		Metric:      q.Metric.clone(db),
-		Role:        q.Role.clone(db),
-		Status:      q.Status.clone(db),
-		User:        q.User.clone(db),
+		db:                db,
+		Application:       q.Application.clone(db),
+		Command:           q.Command.clone(db),
+		Device:            q.Device.clone(db),
+		DeviceApplication: q.DeviceApplication.clone(db),
+		DeviceGroup:       q.DeviceGroup.clone(db),
+		Metric:            q.Metric.clone(db),
+		Role:              q.Role.clone(db),
+		Status:            q.Status.clone(db),
+		User:              q.User.clone(db),
 	}
 }
 
@@ -87,36 +97,42 @@ func (q *Query) WriteDB() *Query {
 
 func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 	return &Query{
-		db:          db,
-		Command:     q.Command.replaceDB(db),
-		Device:      q.Device.replaceDB(db),
-		DeviceGroup: q.DeviceGroup.replaceDB(db),
-		Metric:      q.Metric.replaceDB(db),
-		Role:        q.Role.replaceDB(db),
-		Status:      q.Status.replaceDB(db),
-		User:        q.User.replaceDB(db),
+		db:                db,
+		Application:       q.Application.replaceDB(db),
+		Command:           q.Command.replaceDB(db),
+		Device:            q.Device.replaceDB(db),
+		DeviceApplication: q.DeviceApplication.replaceDB(db),
+		DeviceGroup:       q.DeviceGroup.replaceDB(db),
+		Metric:            q.Metric.replaceDB(db),
+		Role:              q.Role.replaceDB(db),
+		Status:            q.Status.replaceDB(db),
+		User:              q.User.replaceDB(db),
 	}
 }
 
 type queryCtx struct {
-	Command     ICommandDo
-	Device      IDeviceDo
-	DeviceGroup IDeviceGroupDo
-	Metric      IMetricDo
-	Role        IRoleDo
-	Status      IStatusDo
-	User        IUserDo
+	Application       IApplicationDo
+	Command           ICommandDo
+	Device            IDeviceDo
+	DeviceApplication IDeviceApplicationDo
+	DeviceGroup       IDeviceGroupDo
+	Metric            IMetricDo
+	Role              IRoleDo
+	Status            IStatusDo
+	User              IUserDo
 }
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
 	return &queryCtx{
-		Command:     q.Command.WithContext(ctx),
-		Device:      q.Device.WithContext(ctx),
-		DeviceGroup: q.DeviceGroup.WithContext(ctx),
-		Metric:      q.Metric.WithContext(ctx),
-		Role:        q.Role.WithContext(ctx),
-		Status:      q.Status.WithContext(ctx),
-		User:        q.User.WithContext(ctx),
+		Application:       q.Application.WithContext(ctx),
+		Command:           q.Command.WithContext(ctx),
+		Device:            q.Device.WithContext(ctx),
+		DeviceApplication: q.DeviceApplication.WithContext(ctx),
+		DeviceGroup:       q.DeviceGroup.WithContext(ctx),
+		Metric:            q.Metric.WithContext(ctx),
+		Role:              q.Role.WithContext(ctx),
+		Status:            q.Status.WithContext(ctx),
+		User:              q.User.WithContext(ctx),
 	}
 }
 

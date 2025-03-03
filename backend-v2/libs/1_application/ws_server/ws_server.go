@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -381,6 +382,28 @@ func handleWsActionMessage(sctx smart_context.ISmartContext, conn *websocket.Con
 			return
 		}
 		sctx.Infof("Metrics saved for device: %s", metrics.DeviceID)
+	case "sent_apps":
+		// Обрабатываем список приложений
+		var installedApps []model.Application
+		if err := json.Unmarshal(wsMsg.Payload, &installedApps); err != nil {
+			sctx.Errorf("Error unmarshalling installed apps payload: %v", err)
+			return
+		}
+
+		// Находим device_id по device_key
+		var device model.Device
+		err := sctx.GetDB().Where("device_identifier = ?", wsMsg.DeviceKey).First(&device).Error
+		if err != nil {
+			sctx.Errorf("Error finding device by device_key %s: %v", wsMsg.DeviceKey, err)
+			return
+		}
+
+		// Сохраняем в отдельные таблицы (applications, device_applications)
+		err = saveInstalledApps(sctx, device.ID, installedApps)
+		if err != nil {
+			sctx.Errorf("Error saving installed apps: %v", err)
+		}
+		sctx.Infof("Installed apps saved for device: %s", device.ID)
 	default:
 		sctx.Warnf("Unknown action received: %s", wsMsg.Action)
 	}
@@ -447,4 +470,50 @@ func setDeviceStatusOffline(sctx smart_context.ISmartContext, deviceIdentifier s
 
 func registrWSConnection(conn *websocket.Conn, device_id string) {
 	ws_registry.SetClient(device_id, conn)
+}
+
+func saveInstalledApps(sctx smart_context.ISmartContext, deviceID string, installedApps []model.Application) error {
+	db := sctx.GetDB()
+	if db == nil {
+		return fmt.Errorf("no db in context")
+	}
+
+	for _, installedApp := range installedApps {
+		// Найдём/создадим запись в `applications`
+		var app model.Application
+		err := db.Where("name = ? AND version = ?", installedApp.Name, installedApp.Version).First(&app).Error
+		if err != nil {
+			if err == gorm.ErrRecordNotFound {
+				app = model.Application{
+					Name:    installedApp.Name,
+					Version: installedApp.Version,
+					AppType: installedApp.AppType,
+				}
+				if err := db.Create(&app).Error; err != nil {
+					sctx.Errorf("Error creating application %s: %v", installedApp.Name, err)
+					continue
+				}
+			} else {
+				sctx.Errorf("Error finding application %s: %v", installedApp.Name, err)
+				continue
+			}
+		}
+
+		// Запись в device_applications
+		var devApp model.DeviceApplication
+		err = db.Where("device_id = ? AND application_id = ?", deviceID, app.ID).First(&devApp).Error
+		if err == gorm.ErrRecordNotFound {
+			devApp = model.DeviceApplication{
+				DeviceID:      deviceID,
+				ApplicationID: app.ID,
+				InstalledAt:   time.Now(),
+			}
+			if err := db.Create(&devApp).Error; err != nil {
+				sctx.Errorf("Error creating device_applications link: %v", err)
+			}
+		} else if err != nil {
+			sctx.Errorf("Error finding device_applications link: %v", err)
+		}
+	}
+	return nil
 }

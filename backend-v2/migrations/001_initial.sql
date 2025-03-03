@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS metrics (
     memory_used BIGINT,
     memory_available BIGINT,
     process_count INTEGER,
+    installed_programs JSONB, -- Новый столбец для списка установленных программ
     cpu_percent REAL,
     bytes_sent BIGINT,
     bytes_recv BIGINT,
@@ -73,4 +74,19 @@ CREATE TABLE IF NOT EXISTS device_groups (
     name TEXT NOT NULL UNIQUE,
     description TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS applications (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+    name TEXT NOT NULL,
+    version TEXT,
+    app_type TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS device_applications (
+    device_id TEXT NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+    application_id TEXT NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
+    installed_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (device_id, application_id)
 );
