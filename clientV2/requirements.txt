@@ -4,3 +4,4 @@ mss
 websocket-client
 psutil
 pyaudio
+aiortc

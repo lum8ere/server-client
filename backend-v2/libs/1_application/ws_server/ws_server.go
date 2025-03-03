@@ -405,6 +405,27 @@ func handleWsActionMessage(sctx smart_context.ISmartContext, conn *websocket.Con
 			sctx.Errorf("Error saving installed apps: %v", err)
 		}
 		sctx.Infof("Installed apps saved for device: %s", device.ID)
+
+	case "webrtc_offer", "webrtc_answer", "ice_candidate":
+		// Для сигналинга мы предполагаем, что поле DeviceKey содержит идентификатор получателя (target)
+		targetDeviceKey := wsMsg.DeviceKey
+		sctx.Infof("Received signaling message '%s' for device: %s", wsMsg.Action, targetDeviceKey)
+		// Ищем целевое соединение по deviceKey
+		targetConn, found := ws_registry.GetClient(targetDeviceKey)
+		if !found {
+			sctx.Warnf("Target client with deviceKey %s not found", targetDeviceKey)
+			return
+		}
+		// Пересылаем сообщение как есть (например, в JSON)
+		data, err := json.Marshal(wsMsg)
+		if err != nil {
+			sctx.Errorf("Failed to marshal signaling message: %v", err)
+			return
+		}
+		// Отправляем сообщение в целевое WS-соединение
+		if err := targetConn.WriteMessage(websocket.TextMessage, data); err != nil {
+			sctx.Errorf("Failed to forward signaling message: %v", err)
+		}
 	default:
 		sctx.Warnf("Unknown action received: %s", wsMsg.Action)
 	}

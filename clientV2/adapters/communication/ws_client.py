@@ -5,6 +5,7 @@ import websocket
 from clientV2.config import settings
 from clientV2.core.services.logger_service import LoggerService
 from clientV2.utils.device_id import get_device_id
+from clientV2.adapters.communication import webrtc_client
 
 logger = LoggerService()
 
@@ -52,10 +53,39 @@ class WSClient:
         except Exception as e:
             logger.error(f"Error sending registration message: {e}")
 
-    def on_message(self, ws, message):
-        logger.info(f"Message received: {message}")
-        if self.on_message_callback:
-            self.on_message_callback(message)
+    def on_message(ws, message):
+        try:
+            data = json.loads(message)
+            action = data.get("action")
+            payload = data.get("payload")
+            logger.info(f"[Python Client] Received signaling message: {action}")
+
+            # Обработка сигналинговых сообщений WebRTC
+            if action == "webrtc_answer":
+                webrtc_client.run_async(webrtc_client.get_webrtc_client(ws.send).handle_answer(payload))
+            elif action == "webrtc_ice":
+                webrtc_client.run_async(webrtc_client.get_webrtc_client(ws.send).add_ice_candidate(payload))
+            elif action == "start_camera":
+                # Запускаем WebRTC‑сессию – создаем peer connection и отправляем offer
+                webrtc_client.run_async(webrtc_client.get_webrtc_client(ws.send).start())
+            elif action == "stop_camera":
+                webrtc_client.run_async(webrtc_client.get_webrtc_client(ws.send).stop())
+            else:
+                # Если не сигналинговое сообщение – обрабатываем как простое текстовое
+                logger.info(f"[Python Client] Received non-signaling message: {data}")
+        except json.JSONDecodeError:
+            # Если не JSON, пробуем обработать как простое текстовое сообщение
+            if message == "start_camera":
+                webrtc_client.run_async(webrtc_client.get_webrtc_client(ws.send).start())
+            elif message == "stop_camera":
+                webrtc_client.run_async(webrtc_client.get_webrtc_client(ws.send).stop())
+            else:
+                logger.info(f"[Python Client] Received: {message}")
+
+    # def on_message(self, ws, message):
+    #     logger.info(f"Message received: {message}")
+    #     if self.on_message_callback:
+    #         self.on_message_callback(message)
 
     def on_error(self, ws, error):
         logger.error(f"WebSocket error: {error}")
