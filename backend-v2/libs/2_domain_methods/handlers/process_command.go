@@ -9,7 +9,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func SendCommandHandler(sctx smart_context.ISmartContext, args types.ANY_DATA) (*types.ANY_DATA, error) {
+func SendCommandHandler(sctx smart_context.ISmartContext, args types.ANY_DATA) (interface{}, error) {
 	sctx.Infof("SendCommandHandler started with args: %v", args)
 
 	// Извлекаем device identifier из args
@@ -42,5 +42,6 @@ func SendCommandHandler(sctx smart_context.ISmartContext, args types.ANY_DATA) (
 		"device":  deviceId,
 		"command": command,
 	}
-	return types.AnyDataRef(resp), nil
+
+	return resp, nil
 }

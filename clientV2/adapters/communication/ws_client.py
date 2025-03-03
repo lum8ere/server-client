@@ -85,7 +85,8 @@ class WSClient:
         while not self.stop_event.is_set():
             if self.connected:
                 try:
-                    self.ws.send("ping")
+                    # Отправляем ping как управляющий кадр, а не текст
+                    self.ws.send("ping", opcode=websocket.ABNF.OPCODE_PING)
                 except Exception as e:
                     logger.error(f"Heartbeat error: {e}")
             time.sleep(self.heartbeat_interval)

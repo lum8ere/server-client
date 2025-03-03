@@ -4,6 +4,8 @@ import (
 	"backed-api-v2/libs/1_application/ws_server"
 	"backed-api-v2/libs/2_domain_methods/handlers"
 	"backed-api-v2/libs/2_domain_methods/handlers/auth"
+	"backed-api-v2/libs/2_domain_methods/handlers/devices"
+	"backed-api-v2/libs/2_domain_methods/handlers/metrics"
 	"backed-api-v2/libs/2_domain_methods/handlers/test_handlers"
 	"backed-api-v2/libs/2_domain_methods/run_processor"
 	"backed-api-v2/libs/5_common/rest_middleware"
@@ -29,11 +31,15 @@ func initRoutes(sctx smart_context.ISmartContext) (*chi.Mux, error) {
 
 	r.Post("/auth/login", rest_middleware.WithRestApiSmartContext(sctx, auth.LoginHandler))
 	r.Get("/rnd2", run_processor.WrapRestApiSmartHandler(sctx, test_handlers.RndHandler2))
+
+	// Запрос для обработке команд
 	r.Post("/send_command", run_processor.WrapRestApiSmartHandler(sctx, handlers.SendCommandHandler))
 
-	// r.Post("/devices/register", rest_middleware.WithRestApiSmartContext(sctx, devices.RegisterDeviceHandler))
-	// // Прием метрик
-	// r.Post("/metrics", rest_middleware.WithRestApiSmartContext(sctx, metrics.ReceiveMetricsHandler))
+	// запросы для фронта
+	r.Get("/api/devices", run_processor.WrapRestApiSmartHandler(sctx, devices.GetDevicesHandler))
+	r.Get("/api/devices/{id}", run_processor.WrapRestApiSmartHandler(sctx, devices.GetDevicesByIDHandler))
+	r.Get("/api/metrics", run_processor.WrapRestApiSmartHandler(sctx, metrics.GetMetricsHandler))
+	r.Get("/api/metrics/{id}", run_processor.WrapRestApiSmartHandler(sctx, metrics.GetMetricsByDeviceIDHandler)) // тут id это id девайса
 
 	// pprof
 	runtime.SetMutexProfileFraction(1)

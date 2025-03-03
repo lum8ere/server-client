@@ -1,25 +1,33 @@
 package run_processor
 
 import (
-	"backed-api-v2/libs/5_common/rest_middleware"
-	"backed-api-v2/libs/5_common/smart_context"
-	"backed-api-v2/libs/5_common/types"
 	"encoding/json"
 	"net/http"
 	"strings"
+
+	"github.com/go-chi/chi/v5"
+
+	"backed-api-v2/libs/5_common/rest_middleware"
+	"backed-api-v2/libs/5_common/smart_context"
+	"backed-api-v2/libs/5_common/types"
 )
 
-// SmartHandlerFunc принимает smart-контекст и параметры запроса, возвращает объект (любой тип) и ошибку. Если объект не nil, он будет сериализован в JSON.
-type SmartHandlerFunc func(sctx smart_context.ISmartContext, args types.ANY_DATA) (*types.ANY_DATA, error)
+type SmartHandlerFunc func(sctx smart_context.ISmartContext, args types.ANY_DATA) (interface{}, error)
 
 func WrapSmartHandler(sctx smart_context.ISmartContext, handler SmartHandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Извлечение query-параметров
+		// Извлекаем query-параметры
 		params := types.ANY_DATA{}
 		for key, values := range r.URL.Query() {
 			if len(values) > 0 {
 				params[key] = values[0]
 			}
+		}
+
+		// Извлекаем параметры пути из контекста chi
+		rc := chi.RouteContext(r.Context())
+		for i, key := range rc.URLParams.Keys {
+			params[key] = rc.URLParams.Values[i]
 		}
 
 		// Если метод POST и Content-Type содержит "application/json", пытаемся декодировать тело запроса
@@ -52,10 +60,7 @@ func WrapSmartHandler(sctx smart_context.ISmartContext, handler SmartHandlerFunc
 }
 
 func WrapRestApiSmartHandler(sctx smart_context.ISmartContext, handler SmartHandlerFunc) http.HandlerFunc {
-	// Сначала получаем базовый http.HandlerFunc, который извлекает параметры и вызывает handler.
 	baseHandler := WrapSmartHandler(sctx, handler)
-	// Затем оборачиваем его с помощью существующей цепочки middleware.
-	// WithRestApiSmartContext ожидает SmartHandlerFunc с сигнатурой (sctx, w, r), поэтому создаём адаптер.
 	return rest_middleware.WithRestApiSmartContext(sctx, func(sctx smart_context.ISmartContext, w http.ResponseWriter, r *http.Request) {
 		baseHandler(w, r)
 	})

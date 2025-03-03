@@ -209,6 +209,7 @@ func (u *WsUpgrader) HandleWebSocket(sctx smart_context.ISmartContext, w http.Re
 			if messageType == websocket.TextMessage {
 				// TODO: переработать вот это. Выглядит ужастно
 				var wsMsg WSMessage
+				sctx.Infof("WSMessage: %v", wsMsg.Action)
 				if err := json.Unmarshal(messageData, &wsMsg); err != nil {
 					sctx.Errorf("Error unmarshalling WebSocket message: %v", err)
 					continue
