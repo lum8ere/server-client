@@ -29,7 +29,6 @@ func newDevice(db *gorm.DB, opts ...gen.DOOption) device {
 	_device.ALL = field.NewAsterisk(tableName)
 	_device.ID = field.NewString(tableName, "id")
 	_device.DeviceIdentifier = field.NewString(tableName, "device_identifier")
-	_device.UserID = field.NewString(tableName, "user_id")
 	_device.Description = field.NewString(tableName, "description")
 	_device.Status = field.NewString(tableName, "status")
 	_device.LastSeen = field.NewTime(tableName, "last_seen")
@@ -47,7 +46,6 @@ type device struct {
 	ALL              field.Asterisk
 	ID               field.String
 	DeviceIdentifier field.String
-	UserID           field.String
 	Description      field.String
 	Status           field.String
 	LastSeen         field.Time
@@ -71,7 +69,6 @@ func (d *device) updateTableName(table string) *device {
 	d.ALL = field.NewAsterisk(table)
 	d.ID = field.NewString(table, "id")
 	d.DeviceIdentifier = field.NewString(table, "device_identifier")
-	d.UserID = field.NewString(table, "user_id")
 	d.Description = field.NewString(table, "description")
 	d.Status = field.NewString(table, "status")
 	d.LastSeen = field.NewTime(table, "last_seen")
@@ -93,10 +90,9 @@ func (d *device) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (d *device) fillFieldMap() {
-	d.fieldMap = make(map[string]field.Expr, 8)
+	d.fieldMap = make(map[string]field.Expr, 7)
 	d.fieldMap["id"] = d.ID
 	d.fieldMap["device_identifier"] = d.DeviceIdentifier
-	d.fieldMap["user_id"] = d.UserID
 	d.fieldMap["description"] = d.Description
 	d.fieldMap["status"] = d.Status
 	d.fieldMap["last_seen"] = d.LastSeen

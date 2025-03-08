@@ -32,3 +32,14 @@ func GetClient(deviceId string) (*websocket.Conn, bool) {
 	conn, ok := clients[deviceId]
 	return conn, ok
 }
+
+func RemoveConnection(conn *websocket.Conn) {
+	clientsMutex.Lock()
+	defer clientsMutex.Unlock()
+	for key, c := range clients {
+		if c == conn {
+			delete(clients, key)
+			break
+		}
+	}
+}

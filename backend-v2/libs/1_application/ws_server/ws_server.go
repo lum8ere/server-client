@@ -161,6 +161,9 @@ func (u *WsUpgrader) HandleWebSocket(sctx smart_context.ISmartContext, w http.Re
 		if code == websocket.CloseNormalClosure || code == websocket.CloseGoingAway {
 			setDeviceStatusOffline(sctx, registeredDeviceKey)
 		}
+
+		ws_registry.RemoveConnection(conn)
+
 		return nil
 	})
 
@@ -363,6 +366,10 @@ func handleWsActionMessage(sctx smart_context.ISmartContext, conn *websocket.Con
 		}
 
 		registrWSConnection(conn, device_id)
+	case "register_frontend":
+		regKey := "frontend_" + wsMsg.DeviceKey
+		ws_registry.SetClient(regKey, conn)
+		sctx.Infof("Registered frontend client with key: %s", regKey)
 	case "sent_metrics":
 		var metrics model.Metric
 		if err := json.Unmarshal(wsMsg.Payload, &metrics); err != nil {
@@ -405,26 +412,55 @@ func handleWsActionMessage(sctx smart_context.ISmartContext, conn *websocket.Con
 			sctx.Errorf("Error saving installed apps: %v", err)
 		}
 		sctx.Infof("Installed apps saved for device: %s", device.ID)
+	case "camera_frame":
+		sctx.Infof("Received camera frame from device: %s", wsMsg.DeviceKey)
+		// Формируем ключ для фронтенд клиента
 
-	case "webrtc_offer", "webrtc_answer", "ice_candidate":
-		// Для сигналинга мы предполагаем, что поле DeviceKey содержит идентификатор получателя (target)
-		targetDeviceKey := wsMsg.DeviceKey
-		sctx.Infof("Received signaling message '%s' for device: %s", wsMsg.Action, targetDeviceKey)
-		// Ищем целевое соединение по deviceKey
-		targetConn, found := ws_registry.GetClient(targetDeviceKey)
-		if !found {
-			sctx.Warnf("Target client with deviceKey %s not found", targetDeviceKey)
+		var device model.Device
+		err := sctx.GetDB().Where("device_identifier = ?", wsMsg.DeviceKey).First(&device).Error
+		if err != nil {
+			sctx.Warnf("ошибка при получении устройства: %w", err)
 			return
 		}
-		// Пересылаем сообщение как есть (например, в JSON)
+
+		targetKey := "frontend_" + device.ID
+		sctx.Infof("targetKey: %v", targetKey)
+		targetConn, found := ws_registry.GetClient(targetKey)
+		if !found {
+			sctx.Warnf("Frontend client not found for key: %s", targetKey)
+			return
+		}
 		data, err := json.Marshal(wsMsg)
 		if err != nil {
-			sctx.Errorf("Failed to marshal signaling message: %v", err)
+			sctx.Errorf("Failed to marshal camera_frame message: %v", err)
 			return
 		}
-		// Отправляем сообщение в целевое WS-соединение
 		if err := targetConn.WriteMessage(websocket.TextMessage, data); err != nil {
-			sctx.Errorf("Failed to forward signaling message: %v", err)
+			sctx.Errorf("Failed to forward camera_frame: %v", err)
+		}
+	case "recorded_audio":
+		sctx.Infof("Received recorded audio from device: %s", wsMsg.DeviceKey)
+
+		var device model.Device
+		err := sctx.GetDB().Where("device_identifier = ?", wsMsg.DeviceKey).First(&device).Error
+		if err != nil {
+			sctx.Warnf("ошибка при получении устройства: %w", err)
+			return
+		}
+
+		targetKey := "frontend_" + device.ID
+		targetConn, found := ws_registry.GetClient(targetKey)
+		if !found {
+			sctx.Warnf("Frontend client not found for key: %s", targetKey)
+			return
+		}
+		data, err := json.Marshal(wsMsg)
+		if err != nil {
+			sctx.Errorf("Failed to marshal recorded_audio message: %v", err)
+			return
+		}
+		if err := targetConn.WriteMessage(websocket.TextMessage, data); err != nil {
+			sctx.Errorf("Failed to forward recorded_audio: %v", err)
 		}
 	default:
 		sctx.Warnf("Unknown action received: %s", wsMsg.Action)
@@ -440,7 +476,6 @@ func registerDevice(sctx smart_context.ISmartContext, deviceIdentifier string) (
 			device = model.Device{
 				DeviceIdentifier: deviceIdentifier,
 				Status:           "ONLINE",
-				UserID:           "411c0868-638a-4370-ad42-650cab9fb227", // временно
 				LastSeen:         time.Now(),
 				CreatedAt:        time.Now(),
 				UpdatedAt:        time.Now(),

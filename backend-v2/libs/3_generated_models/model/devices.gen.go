@@ -14,7 +14,6 @@ const TableNameDevice = "devices"
 type Device struct {
 	ID               string    `gorm:"column:id;primaryKey;default:gen_random_uuid()" json:"id"`
 	DeviceIdentifier string    `gorm:"column:device_identifier;not null" json:"device_identifier"`
-	UserID           string    `gorm:"column:user_id" json:"user_id"`
 	Description      string    `gorm:"column:description" json:"description"`
 	Status           string    `gorm:"column:status" json:"status"`
 	LastSeen         time.Time `gorm:"column:last_seen" json:"last_seen"`

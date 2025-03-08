@@ -5,6 +5,18 @@ from clientV2.core.services.logger_service import LoggerService
 
 logger = LoggerService()
 
+# Глобальная переменная для WS клиента, которую нужно установить извне
+ws_client = None
+
+def set_ws_client(client):
+    """
+    Устанавливает глобальный WS-клиент,
+    который будет использоваться для отправки кадров.
+    """
+    global ws_client
+    ws_client = client
+    logger.info("Microphone ws_client is set.")
+
 def record_audio(duration=5):
     logger.info("Recording audio...")
     p = pyaudio.PyAudio()

