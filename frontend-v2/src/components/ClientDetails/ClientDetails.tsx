@@ -22,49 +22,44 @@ import { AudioStream } from 'components/AudioStream/AudioStream';
 import { MediaCapture } from 'components/PhotoStream/PhotoStream';
 
 const { TabPane } = Tabs;
-const backendUrl = 'http://localhost:4000';
 
-// ---------- Типы данных ----------
-interface Metrics {
+interface Device {
+    id: string;
+    device_identifier: string;
+    description?: string;
+    status: string;
+    last_seen: string;
+    created_at: string;
+    updated_at: string;
+}
+
+interface Metric {
+    id: string;
+    device_id: string;
+    public_ip: string;
+    hostname: string;
+    os_info: string;
     disk_total: number;
+    disk_used: number;
     disk_free: number;
     memory_total: number;
+    memory_used: number;
     memory_available: number;
-    processor: string;
-    os: string;
-    has_password: boolean;
-    minimum_password_lenght: number;
-    pc_name: string;
+    process_count: number;
+    cpu_percent: number;
+    bytes_sent: number;
+    bytes_recv: number;
+    created_at: string;
+    latitude: number;
+    longitude: number;
 }
 
-interface ProcessInfo {
-    Pid: number;
-    Name: string;
-}
-
-interface ServiceInfo {
-    Name: string;
-    DisplayName: string;
-    Status: string;
-}
-
-interface AppsServices {
-    processes: ProcessInfo[];
-    services: ServiceInfo[];
-}
-
-interface ClientNode {
-    ID: string;
-    IP: string;
-    Status: string;
-    Metrics: Metrics;
-    AppsServices: AppsServices;
-}
-
-interface Location {
-    status: string;
-    lat: number;
-    lon: number;
+interface Application {
+    id: string;
+    name: string;
+    version?: string;
+    app_type?: string;
+    created_at: string;
 }
 
 interface SendCommandBody {
@@ -79,50 +74,50 @@ export const ClientDetails: React.FC = () => {
     const [api, contextHolder] = notification.useNotification();
     const { id } = useParams();
 
-    // Состояния
-    const [node, setNode] = useState<ClientNode | null>(null);
-    const [position, setPosition] = useState<Location | null>(null);
+    const [device, setDevice] = useState<Device | null>(null);
+    const [metric, setMetric] = useState<Metric | null>(null);
+    const [apps, setApps] = useState<Application[]>([]);
 
-    // Модальные окна
     const [webcamModalVisible, setWebcamModalVisible] = useState(false);
     const [captureModalVisible, setCaptureModalVisible] = useState(false);
     const [screenshotModalVisible, setScreenshotModalVisible] = useState(false);
     const [audioModalVisible, setAudioModalVisible] = useState(false);
 
-    // Пути к файлам (используются для вебкамеры, если не применяем стрим через WS)
-    const [webcamUrl, setWebcamUrl] = useState(`${backendUrl}/uploads/latest_frame.jpg`);
-    const [audioUrl, setAudioUrl] = useState(`${backendUrl}/uploads/latest_recorded_audio.wav`);
-
-    // ID таймера для обновления вебкамеры (если используется)
-    const webcamIntervalRef = useRef<number | null>(null);
-
-    // Загрузка данных
     useEffect(() => {
         if (id) {
-            fetchById();
-            fetchMap();
+            fetchDevice();
+            fetchMetrics();
+            fetchApps();
         }
     }, [id]);
 
-    const fetchById = async () => {
+    const fetchDevice = async () => {
         try {
-            const res = await instance.get<ClientNode>(`/api/clients/${id}`);
-            setNode(res.data);
+            const res = await instance.get<Device>(`/api/devices/${id}`);
+            setDevice(res.data);
         } catch (err) {
-            message.error('Ошибка при получении ноды');
+            message.error('Ошибка при получении данных устройства');
         }
     };
 
-    const fetchMap = async () => {
+    const fetchMetrics = async () => {
         try {
-            const res = await instance.get<Location>(`/api/map/${id}`);
-            setPosition(res.data);
+            const res = await instance.get<Metric>(`/api/metrics/${id}`);
+            setMetric(res.data);
         } catch (err) {
-            message.error('Ошибка при получении локации');
+            message.error('Ошибка при получении метрик');
         }
     };
 
-    // Отправка команд
+    const fetchApps = async () => {
+        try {
+            const res = await instance.get<Application[]>(`/api/apps/${id}`);
+            setApps(res.data);
+        } catch (err) {
+            message.error('Ошибка при получении списка приложений');
+        }
+    };
+
     const sendCommand = async (cmd: string) => {
         try {
             const body: SendCommandBody = {
@@ -141,8 +136,8 @@ export const ClientDetails: React.FC = () => {
         api[type]({
             message:
                 type === 'success'
-                    ? `The command "${cmd}" has been sent successfully`
-                    : `Error while sending command "${cmd}"`
+                    ? `Команда "${cmd}" успешно отправлена`
+                    : `Ошибка при отправке команды "${cmd}"`
         });
     };
 
@@ -159,9 +154,11 @@ export const ClientDetails: React.FC = () => {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
     };
 
-    const mapCenter: [number, number] = position ? [position.lat, position.lon] : [51.505, -0.09];
+    debugger;
+    const mapCenter: [number, number] = metric
+        ? [metric.latitude, metric.longitude]
+        : [51.505, -0.09];
 
-    // Dropdown меню
     const usbItems: MenuProps['items'] = [
         {
             key: 'on',
@@ -200,7 +197,6 @@ export const ClientDetails: React.FC = () => {
         }
     ];
 
-    // Обработчики для модалок
     const handleOpenWebcamModal = async () => {
         await sendCommand('start_camera');
         setWebcamModalVisible(true);
@@ -213,7 +209,6 @@ export const ClientDetails: React.FC = () => {
 
     const handleCaptureFrameModal = async () => {
         await sendCommand('capture_frame');
-        // Задержка для получения ответа
         setTimeout(() => {
             setCaptureModalVisible(true);
         }, 2000);
@@ -231,16 +226,12 @@ export const ClientDetails: React.FC = () => {
         }, 2000);
     };
 
-    // Колонки для таблиц процессов и служб (оставляем без изменений)
-    const processColumns = [
-        { title: 'PID', dataIndex: 'pid' },
-        { title: 'Name', dataIndex: 'name' }
-    ];
-
-    const serviceColumns = [
+    // Пример колонок для таблицы установленных приложений
+    const appColumns = [
         { title: 'Name', dataIndex: 'name' },
-        { title: 'Display Name', dataIndex: 'display_name' },
-        { title: 'Status', dataIndex: 'status' }
+        { title: 'Version', dataIndex: 'version' },
+        { title: 'Type', dataIndex: 'app_type' },
+        { title: 'Installed At', dataIndex: 'created_at' }
     ];
 
     return (
@@ -250,7 +241,9 @@ export const ClientDetails: React.FC = () => {
                 <Col>
                     <Space>
                         <Button onClick={handleBack}>{'< Back'}</Button>
-                        <span style={{ fontSize: 18, fontWeight: 'bold' }}>{id || '---'}</span>
+                        <span style={{ fontSize: 18, fontWeight: 'bold' }}>
+                            {metric?.hostname || id}
+                        </span>
                     </Space>
                 </Col>
                 <Col>
@@ -272,47 +265,37 @@ export const ClientDetails: React.FC = () => {
                 </Col>
             </Row>
 
-            {/* Информация о системе */}
             <div style={{ marginBottom: 16, background: '#fff', padding: 16 }}>
-                {node ? (
+                {device && metric ? (
                     <Descriptions title="Information about the system" bordered size="small">
+                        <Descriptions.Item label="Status">{device.status}</Descriptions.Item>
                         <Descriptions.Item label="Disk total">
-                            {formatBytes(node.Metrics.disk_total)}
+                            {formatBytes(metric.disk_total)}
                         </Descriptions.Item>
                         <Descriptions.Item label="Disk free">
-                            {formatBytes(node.Metrics.disk_free)}
+                            {formatBytes(metric.disk_free)}
                         </Descriptions.Item>
-                        <Descriptions.Item label="OS">{node.Metrics.os}</Descriptions.Item>
+                        <Descriptions.Item label="OS">{metric.os_info}</Descriptions.Item>
                         <Descriptions.Item label="Total memory">
-                            {formatBytes(node.Metrics.memory_total)}
+                            {formatBytes(metric.memory_total)}
                         </Descriptions.Item>
-                        <Descriptions.Item label="Processor">
-                            {node.Metrics.processor}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="Has password">
-                            {node.Metrics.has_password ? 'Yes' : 'No'}
+                        <Descriptions.Item label="Processor">{metric.hostname}</Descriptions.Item>
+                        <Descriptions.Item label="Public IP">{metric.public_ip}</Descriptions.Item>
+                        <Descriptions.Item label="Coordinates">
+                            {metric.latitude}, {metric.longitude}
                         </Descriptions.Item>
                     </Descriptions>
                 ) : (
-                    <p>Нет данных о метриках</p>
+                    <p>Нет данных о метриках или устройстве</p>
                 )}
             </div>
 
-            {/* Табы для процессов, служб и логов */}
             <Tabs defaultActiveKey="details">
-                <TabPane tab="Software" key="software">
+                <TabPane tab="Software" key="apps">
                     <Table
-                        dataSource={node?.AppsServices?.processes || []}
-                        columns={processColumns}
-                        rowKey="pid"
-                        pagination={{ pageSize: 5 }}
-                    />
-                </TabPane>
-                <TabPane tab="Service" key="service">
-                    <Table
-                        dataSource={node?.AppsServices?.services || []}
-                        columns={serviceColumns}
-                        rowKey="name"
+                        dataSource={apps}
+                        columns={appColumns}
+                        rowKey="id"
                         pagination={{ pageSize: 5 }}
                     />
                 </TabPane>
@@ -321,7 +304,6 @@ export const ClientDetails: React.FC = () => {
                 </TabPane>
             </Tabs>
 
-            {/* Карта */}
             <div style={{ marginTop: 16, padding: 16, background: '#fff' }}>
                 <div style={{ width: '100%', height: '400px' }}>
                     <MapContainer
@@ -330,10 +312,10 @@ export const ClientDetails: React.FC = () => {
                         style={{ height: '100%', width: '100%' }}
                     >
                         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                        {position && (
-                            <Marker position={[position.lat, position.lon]}>
+                        {metric && (
+                            <Marker position={[metric.latitude, metric.longitude]}>
                                 <Popup>
-                                    Текущая позиция: {position.lat}, {position.lon}
+                                    Текущая позиция: {metric.latitude}, {metric.longitude}
                                 </Popup>
                             </Marker>
                         )}
@@ -341,7 +323,6 @@ export const ClientDetails: React.FC = () => {
                 </div>
             </div>
 
-            {/* Модальное окно для вебкамеры */}
             <Modal
                 title="Webcam streaming"
                 open={webcamModalVisible}
@@ -353,7 +334,6 @@ export const ClientDetails: React.FC = () => {
                 <CameraStream id={id} />
             </Modal>
 
-            {/* Модальное окно для captured frame */}
             <Modal
                 title="Captured Frame"
                 open={captureModalVisible}
@@ -364,7 +344,6 @@ export const ClientDetails: React.FC = () => {
                 <MediaCapture id={id} mode="capture" />
             </Modal>
 
-            {/* Модальное окно для скриншота */}
             <Modal
                 title="Screenshot"
                 open={screenshotModalVisible}
@@ -375,7 +354,6 @@ export const ClientDetails: React.FC = () => {
                 <MediaCapture id={id} mode="screenshot" />
             </Modal>
 
-            {/* Модальное окно для аудио */}
             <Modal
                 title="Recorded audio"
                 open={audioModalVisible}

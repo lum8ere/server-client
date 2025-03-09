@@ -3,9 +3,9 @@ package main
 import (
 	"backed-api-v2/libs/1_application/ws_server"
 	"backed-api-v2/libs/2_domain_methods/handlers"
+	"backed-api-v2/libs/2_domain_methods/handlers/applications"
 	"backed-api-v2/libs/2_domain_methods/handlers/auth"
 	"backed-api-v2/libs/2_domain_methods/handlers/devices"
-	"backed-api-v2/libs/2_domain_methods/handlers/geocoding"
 	"backed-api-v2/libs/2_domain_methods/handlers/metrics"
 	"backed-api-v2/libs/2_domain_methods/handlers/test_handlers"
 	"backed-api-v2/libs/2_domain_methods/run_processor"
@@ -40,8 +40,8 @@ func initRoutes(sctx smart_context.ISmartContext) (*chi.Mux, error) {
 	r.Get("/api/devices", run_processor.WrapRestApiSmartHandler(sctx, devices.GetDevicesHandler))
 	r.Get("/api/devices/{id}", run_processor.WrapRestApiSmartHandler(sctx, devices.GetDevicesByIDHandler))
 	r.Get("/api/metrics", run_processor.WrapRestApiSmartHandler(sctx, metrics.GetMetricsHandler))
-	r.Get("/api/metrics/{id}", run_processor.WrapRestApiSmartHandler(sctx, metrics.GetMetricsByDeviceIDHandler)) // тут id это id девайса
-	r.Get("/api/map/{id}", run_processor.WrapRestApiSmartHandler(sctx, geocoding.GeoCodingHandler))              // тут id это id девайса
+	r.Get("/api/metrics/{id}", run_processor.WrapRestApiSmartHandler(sctx, metrics.GetMetricsByDeviceIDHandler))         // тут id это id девайса
+	r.Get("/api/apps/{id}", run_processor.WrapRestApiSmartHandler(sctx, applications.GetApplicationsByDevicesIDHandler)) // тут id это id девайса
 
 	// pprof
 	runtime.SetMutexProfileFraction(1)

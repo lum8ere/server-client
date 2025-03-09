@@ -24,11 +24,11 @@ func GetMetricsByDeviceIDHandler(sctx smart_context.ISmartContext, params types.
 		return nil, fmt.Errorf("missing device id")
 	}
 
-	var metrics model.Metric
-	err := sctx.GetDB().Where("device_id = ?", id).Find(&metrics).Error
+	var metric model.Metric
+	err := sctx.GetDB().Where("device_id = ?", id).Order("created_at DESC").First(&metric).Error
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при получении устройства: %w", err)
 	}
 
-	return metrics, nil
+	return metric, nil
 }
