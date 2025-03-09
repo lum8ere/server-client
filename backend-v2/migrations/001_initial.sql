@@ -41,6 +41,8 @@ CREATE TABLE IF NOT EXISTS metrics (
     id TEXT PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
     device_id TEXT REFERENCES devices(id) on delete cascade,
     public_ip TEXT,
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION,
     hostname TEXT,
     os_info TEXT,
     disk_total BIGINT,

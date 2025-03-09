@@ -2,6 +2,7 @@ package service_helper
 
 import (
 	"backed-api-v2/libs/4_infrastructure/db_manager"
+	"backed-api-v2/libs/4_infrastructure/offilne_geocoding_db"
 	"backed-api-v2/libs/5_common/env_vars"
 	"backed-api-v2/libs/5_common/shutdown"
 	"backed-api-v2/libs/5_common/smart_context"
@@ -56,6 +57,12 @@ func internalStartService(
 		return fmt.Errorf("error connecting to main (regular) database: %v", err)
 	}
 	sctx = sctx.WithDbManager(dbm).WithDB(dbm.GetGORM())
+
+	geo, err := offilne_geocoding_db.NewGeoLite2Geocoder("D:/[2]Work/server-client/backend-v2/geoLite_db/GeoLite2-City.mmdb")
+	if err != nil {
+		return fmt.Errorf("error initializing geocoder: %v", err)
+	}
+	sctx = sctx.WithGeocoder(geo)
 
 	// rcm := redis_cache_manager.NewRedisCacheManager(sctx)
 	// if rcm != nil {

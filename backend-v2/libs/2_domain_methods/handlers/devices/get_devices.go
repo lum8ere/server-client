@@ -9,7 +9,7 @@ import (
 
 func GetDevicesHandler(sctx smart_context.ISmartContext, params types.ANY_DATA) (interface{}, error) {
 	var devices []model.Device
-	err := sctx.GetDB().First(&devices).Error
+	err := sctx.GetDB().Find(&devices).Error
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при сохранении состояния объекта: %w", err)
 	}

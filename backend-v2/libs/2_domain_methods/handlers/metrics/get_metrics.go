@@ -9,7 +9,7 @@ import (
 
 func GetMetricsHandler(sctx smart_context.ISmartContext, params types.ANY_DATA) (interface{}, error) {
 	var metrics []model.Metric
-	err := sctx.GetDB().First(&metrics).Error
+	err := sctx.GetDB().Find(&metrics).Error
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при сохранении состояния объекта: %w", err)
 	}
@@ -25,7 +25,7 @@ func GetMetricsByDeviceIDHandler(sctx smart_context.ISmartContext, params types.
 	}
 
 	var metrics model.Metric
-	err := sctx.GetDB().Where("device_id = ?", id).First(&metrics).Error
+	err := sctx.GetDB().Where("device_id = ?", id).Find(&metrics).Error
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при получении устройства: %w", err)
 	}

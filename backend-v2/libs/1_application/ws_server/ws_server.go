@@ -385,6 +385,21 @@ func handleWsActionMessage(sctx smart_context.ISmartContext, conn *websocket.Con
 
 		metrics.DeviceID = device.ID
 		metrics.CreatedAt = time.Now()
+
+		geo := sctx.GetGeocoder()
+		if geo == nil {
+			sctx.Warnf("Geocoder not available; cannot perform geocoding")
+			metrics.Latitude, metrics.Longitude = 0, 0
+		} else {
+			lat, lon, err := geo.LocalGeocode(metrics.PublicIP)
+			if err != nil {
+				sctx.Warnf("Local geocoding failed for IP %s: %v", metrics.PublicIP, err)
+				lat, lon = 0, 0
+			}
+			metrics.Latitude = lat
+			metrics.Longitude = lon
+		}
+
 		if err := sctx.GetDB().Create(&metrics).Error; err != nil {
 			sctx.Errorf("Error saving metrics for device %s: %v", metrics.DeviceID, err)
 			return

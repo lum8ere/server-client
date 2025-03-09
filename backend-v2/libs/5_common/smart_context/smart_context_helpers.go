@@ -47,3 +47,20 @@ func (sc *SmartContext) GetDeviceIdentifier() string {
 	}
 	return result
 }
+
+// GEOCODER_KEY – ключ для хранения геокодера в dataFields.
+const GEOCODER_KEY = "geocoder"
+
+// WithGeocoder возвращает новый SmartContext с добавленным геокодером.
+func (sc *SmartContext) WithGeocoder(geocoderInstance IGeocoder) ISmartContext {
+	return sc.WithField(GEOCODER_KEY, geocoderInstance)
+}
+
+// GetGeocoder извлекает из SmartContext геокодер, если он был установлен.
+func (sc *SmartContext) GetGeocoder() IGeocoder {
+	result, ok := types.GetFieldTypedValue[IGeocoder](sc.dataFields, GEOCODER_KEY)
+	if !ok {
+		return nil
+	}
+	return result
+}

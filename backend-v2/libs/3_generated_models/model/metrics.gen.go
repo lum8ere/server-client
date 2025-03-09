@@ -28,6 +28,8 @@ type Metric struct {
 	BytesSent       int64     `gorm:"column:bytes_sent" json:"bytes_sent"`
 	BytesRecv       int64     `gorm:"column:bytes_recv" json:"bytes_recv"`
 	CreatedAt       time.Time `gorm:"column:created_at;not null;default:now()" json:"created_at"`
+	Latitude        float64   `gorm:"column:latitude" json:"latitude"`
+	Longitude       float64   `gorm:"column:longitude" json:"longitude"`
 }
 
 // TableName Metric's table name

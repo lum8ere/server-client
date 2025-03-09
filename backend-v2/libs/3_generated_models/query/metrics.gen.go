@@ -43,6 +43,8 @@ func newMetric(db *gorm.DB, opts ...gen.DOOption) metric {
 	_metric.BytesSent = field.NewInt64(tableName, "bytes_sent")
 	_metric.BytesRecv = field.NewInt64(tableName, "bytes_recv")
 	_metric.CreatedAt = field.NewTime(tableName, "created_at")
+	_metric.Latitude = field.NewFloat64(tableName, "latitude")
+	_metric.Longitude = field.NewFloat64(tableName, "longitude")
 
 	_metric.fillFieldMap()
 
@@ -69,6 +71,8 @@ type metric struct {
 	BytesSent       field.Int64
 	BytesRecv       field.Int64
 	CreatedAt       field.Time
+	Latitude        field.Float64
+	Longitude       field.Float64
 
 	fieldMap map[string]field.Expr
 }
@@ -101,6 +105,8 @@ func (m *metric) updateTableName(table string) *metric {
 	m.BytesSent = field.NewInt64(table, "bytes_sent")
 	m.BytesRecv = field.NewInt64(table, "bytes_recv")
 	m.CreatedAt = field.NewTime(table, "created_at")
+	m.Latitude = field.NewFloat64(table, "latitude")
+	m.Longitude = field.NewFloat64(table, "longitude")
 
 	m.fillFieldMap()
 
@@ -117,7 +123,7 @@ func (m *metric) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (m *metric) fillFieldMap() {
-	m.fieldMap = make(map[string]field.Expr, 16)
+	m.fieldMap = make(map[string]field.Expr, 18)
 	m.fieldMap["id"] = m.ID
 	m.fieldMap["device_id"] = m.DeviceID
 	m.fieldMap["public_ip"] = m.PublicIP
@@ -134,6 +140,8 @@ func (m *metric) fillFieldMap() {
 	m.fieldMap["bytes_sent"] = m.BytesSent
 	m.fieldMap["bytes_recv"] = m.BytesRecv
 	m.fieldMap["created_at"] = m.CreatedAt
+	m.fieldMap["latitude"] = m.Latitude
+	m.fieldMap["longitude"] = m.Longitude
 }
 
 func (m metric) clone(db *gorm.DB) metric {

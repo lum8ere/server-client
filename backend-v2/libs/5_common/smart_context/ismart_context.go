@@ -52,6 +52,9 @@ type ISmartContext interface {
 	WithSessionId(session string) ISmartContext
 	GetSessionId() string
 
+	WithGeocoder(geocoderInstance IGeocoder) ISmartContext
+	GetGeocoder() IGeocoder
+
 	// WithMinioManager(minioManager IMinioManager) ISmartContext
 	// GetMinioManager() IMinioManager
 }

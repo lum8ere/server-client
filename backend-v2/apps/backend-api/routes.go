@@ -5,6 +5,7 @@ import (
 	"backed-api-v2/libs/2_domain_methods/handlers"
 	"backed-api-v2/libs/2_domain_methods/handlers/auth"
 	"backed-api-v2/libs/2_domain_methods/handlers/devices"
+	"backed-api-v2/libs/2_domain_methods/handlers/geocoding"
 	"backed-api-v2/libs/2_domain_methods/handlers/metrics"
 	"backed-api-v2/libs/2_domain_methods/handlers/test_handlers"
 	"backed-api-v2/libs/2_domain_methods/run_processor"
@@ -32,7 +33,7 @@ func initRoutes(sctx smart_context.ISmartContext) (*chi.Mux, error) {
 	r.Post("/auth/login", rest_middleware.WithRestApiSmartContext(sctx, auth.LoginHandler))
 	r.Get("/rnd2", run_processor.WrapRestApiSmartHandler(sctx, test_handlers.RndHandler2))
 
-	// Запрос для обработке команд
+	// Запрос для обработки команд
 	r.Post("/send_command", run_processor.WrapRestApiSmartHandler(sctx, handlers.SendCommandHandler))
 
 	// запросы для фронта
@@ -40,6 +41,7 @@ func initRoutes(sctx smart_context.ISmartContext) (*chi.Mux, error) {
 	r.Get("/api/devices/{id}", run_processor.WrapRestApiSmartHandler(sctx, devices.GetDevicesByIDHandler))
 	r.Get("/api/metrics", run_processor.WrapRestApiSmartHandler(sctx, metrics.GetMetricsHandler))
 	r.Get("/api/metrics/{id}", run_processor.WrapRestApiSmartHandler(sctx, metrics.GetMetricsByDeviceIDHandler)) // тут id это id девайса
+	r.Get("/api/map/{id}", run_processor.WrapRestApiSmartHandler(sctx, geocoding.GeoCodingHandler))              // тут id это id девайса
 
 	// pprof
 	runtime.SetMutexProfileFraction(1)
