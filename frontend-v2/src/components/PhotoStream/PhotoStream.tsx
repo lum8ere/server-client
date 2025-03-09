@@ -1,13 +1,18 @@
 import React, { useEffect, useState } from 'react';
 
-interface CameraStreamProps {
-    id: string | undefined;
+interface WSMessage {
+    action: string;
+    device_key: string;
+    payload: string;
 }
 
-export const CameraStream: React.FC<CameraStreamProps> = ({ id }) => {
-    const [imageSrc, setImageSrc] = useState<string>('');
+interface MediaCaptureProps {
+    id: string | undefined;
+    mode: 'capture' | 'screenshot';
+}
 
-    debugger;
+export const MediaCapture: React.FC<MediaCaptureProps> = ({ id, mode }) => {
+    const [imageSrc, setImageSrc] = useState<string>('');
 
     useEffect(() => {
         const ws = new WebSocket('ws://localhost:9000/ws');
@@ -24,8 +29,10 @@ export const CameraStream: React.FC<CameraStreamProps> = ({ id }) => {
         ws.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
-                if (data.action === 'camera_frame') {
+                if (mode === 'capture' && data.action === 'capture_frame') {
                     setImageSrc(`data:image/jpeg;base64,${data.payload}`);
+                } else if (mode === 'screenshot' && data.action === 'screenshot') {
+                    setImageSrc(`data:image/png;base64,${data.payload}`);
                 }
             } catch (e) {
                 console.error('Error processing WS message', e);
@@ -43,14 +50,14 @@ export const CameraStream: React.FC<CameraStreamProps> = ({ id }) => {
         return () => {
             ws.close();
         };
-    }, [id]);
+    }, []);
 
     return (
         <div>
             {imageSrc ? (
-                <img src={imageSrc} alt="Camera Stream" style={{ width: '100%' }} />
+                <img src={imageSrc} alt={`${mode} image`} style={{ width: '100%' }} />
             ) : (
-                <p>Waiting for camera frames...</p>
+                <p>Waiting for {mode === 'capture' ? 'captured frame' : 'screenshot'}...</p>
             )}
         </div>
     );

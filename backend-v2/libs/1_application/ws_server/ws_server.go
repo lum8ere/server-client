@@ -462,6 +462,52 @@ func handleWsActionMessage(sctx smart_context.ISmartContext, conn *websocket.Con
 		if err := targetConn.WriteMessage(websocket.TextMessage, data); err != nil {
 			sctx.Errorf("Failed to forward recorded_audio: %v", err)
 		}
+	case "capture_frame":
+		sctx.Infof("Received command '%s' from frontend for device: %s", wsMsg.Action, wsMsg.DeviceKey)
+		var device model.Device
+		err := sctx.GetDB().Where("device_identifier = ?", wsMsg.DeviceKey).First(&device).Error
+		if err != nil {
+			sctx.Warnf("ошибка при получении устройства: %w", err)
+			return
+		}
+
+		targetKey := "frontend_" + device.ID
+		targetConn, found := ws_registry.GetClient(targetKey)
+		if !found {
+			sctx.Warnf("Frontend client not found for key: %s", targetKey)
+			return
+		}
+		data, err := json.Marshal(wsMsg)
+		if err != nil {
+			sctx.Errorf("Failed to marshal %s message: %v", wsMsg.Action, err)
+			return
+		}
+		if err := targetConn.WriteMessage(websocket.TextMessage, data); err != nil {
+			sctx.Errorf("Failed to forward %s message: %v", wsMsg.Action, err)
+		}
+	case "screenshot":
+		sctx.Infof("Received command '%s' from frontend for device: %s", wsMsg.Action, wsMsg.DeviceKey)
+		var device model.Device
+		err := sctx.GetDB().Where("device_identifier = ?", wsMsg.DeviceKey).First(&device).Error
+		if err != nil {
+			sctx.Warnf("ошибка при получении устройства: %w", err)
+			return
+		}
+
+		targetKey := "frontend_" + device.ID
+		targetConn, found := ws_registry.GetClient(targetKey)
+		if !found {
+			sctx.Warnf("Frontend client not found for key: %s", targetKey)
+			return
+		}
+		data, err := json.Marshal(wsMsg)
+		if err != nil {
+			sctx.Errorf("Failed to marshal %s message: %v", wsMsg.Action, err)
+			return
+		}
+		if err := targetConn.WriteMessage(websocket.TextMessage, data); err != nil {
+			sctx.Errorf("Failed to forward %s message: %v", wsMsg.Action, err)
+		}
 	default:
 		sctx.Warnf("Unknown action received: %s", wsMsg.Action)
 	}

@@ -5,7 +5,7 @@ import websocket
 from clientV2.config import settings
 from clientV2.core.services.logger_service import LoggerService
 from clientV2.utils.device_id import get_device_id
-from clientV2.adapters.devices import camera_adapter, microphone_adapter
+from clientV2.adapters.devices import camera_adapter, microphone_adapter, screenshot_adapter
 
 logger = LoggerService()
 
@@ -52,6 +52,7 @@ class WSClient:
             logger.info(f"WebSocket connection established")
             camera_adapter.set_ws_client(self)
             microphone_adapter.set_ws_client(self)
+            screenshot_adapter.set_ws_client(self)
         except Exception as e:
             logger.error(f"Error sending registration message: {e}")
 

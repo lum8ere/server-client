@@ -95,18 +95,42 @@ def stop_camera_stream():
 
 def capture_frame():
     """
-    Захватывает один кадр с вебкамеры, кодирует его в JPEG и возвращает бинарные данные.
+    Захватывает один кадр с вебкамеры, кодирует его в JPEG,
+    преобразует в строку base64 и отправляет через WebSocket.
     """
-    logger.info("Capturing a single frame from the camera...")
+    logger.info("Начало захвата кадра с вебкамеры...")
+    
     cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        logger.error("Не удалось открыть камеру.")
+        return
+
     ret, frame = cap.read()
-    if not ret:
-        logger.error("Failed to capture frame from camera.")
-        cap.release()
-        return None
-    ret, jpeg = cv2.imencode(".jpg", frame)
     cap.release()
+    
     if not ret:
-        logger.error("Failed to encode frame.")
-        return None
-    return jpeg.tobytes()
+        logger.error("Не удалось захватить кадр.")
+        return
+
+    ret, buffer = cv2.imencode('.jpg', frame)
+    if not ret:
+        logger.error("Ошибка кодирования кадра в JPEG.")
+        return
+
+    jpg_as_text = base64.b64encode(buffer).decode('utf-8')
+
+    # Формируем сообщение для отправки с действием capture_frame_response
+    message = {
+        "action": "capture_frame",
+        "device_key": get_device_id(),
+        "payload": jpg_as_text
+    }
+
+    if ws_client:
+        try:
+            ws_client.send_message(json.dumps(message))
+            logger.info("Кадр успешно отправлен через WebSocket.")
+        except Exception as e:
+            logger.error(f"Ошибка при отправке кадра: {e}")
+    else:
+        logger.warn("WS клиент не установлен. Невозможно отправить кадр.")

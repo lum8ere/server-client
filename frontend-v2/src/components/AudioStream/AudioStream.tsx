@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 interface AudioStreamProps {
-    deviceId: string;
+    deviceId: string | undefined;
 }
 
 export const AudioStream: React.FC<AudioStreamProps> = ({ deviceId }) => {

