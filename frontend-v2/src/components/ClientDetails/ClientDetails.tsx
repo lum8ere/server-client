@@ -11,7 +11,8 @@ import {
     notification,
     Dropdown,
     Modal,
-    Table
+    Table,
+    Badge
 } from 'antd';
 import type { MenuProps } from 'antd';
 import instance from 'service/api';
@@ -268,7 +269,14 @@ export const ClientDetails: React.FC = () => {
             <div style={{ marginBottom: 16, background: '#fff', padding: 16 }}>
                 {device && metric ? (
                     <Descriptions title="Information about the system" bordered size="small">
-                        <Descriptions.Item label="Status">{device.status}</Descriptions.Item>
+                        <Descriptions.Item label="Status">
+                            <Badge
+                                status={
+                                    device.status.toLowerCase() === 'online' ? 'success' : 'default'
+                                }
+                                text={device.status}
+                            />
+                        </Descriptions.Item>
                         <Descriptions.Item label="Disk total">
                             {formatBytes(metric.disk_total)}
                         </Descriptions.Item>
