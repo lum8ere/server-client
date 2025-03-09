@@ -7,6 +7,14 @@ from clientV2.core.services.logger_service import LoggerService
 
 logger = LoggerService()
 
+def get_local_ip() -> str:
+    """Возвращает первый найденный IPv4 адрес, не являющийся loopback."""
+    for interface, addrs in psutil.net_if_addrs().items():
+        for addr in addrs:
+            if addr.family == socket.AF_INET and not addr.address.startswith("127."):
+                return addr.address
+    return "127.0.0.1"
+
 def collect_metrics() -> Metric:
     public_ip = ""
     try:
@@ -15,10 +23,22 @@ def collect_metrics() -> Metric:
             public_ip = response.json().get("ip", "")
     except Exception as e:
         logger.error(f"Error getting public IP: {e}")
+        # Если запрос не удался, возвращаем локальный IP
+        public_ip = get_local_ip()
     
     hostname = socket.gethostname()
-    os_info = f"{platform.system()} {platform.release()}"
-    
+
+    # Собираем расширенную информацию об ОС
+    var_os_info = ""
+    system_name = platform.system()
+    if system_name == "Windows":
+        # platform.win32_ver() возвращает (release, version, csd, ptype)
+        win_ver = platform.win32_ver()
+        var_os_info = f"Windows {win_ver[0]} (Build {win_ver[1]}, {win_ver[2] or 'no SP'})"
+    else:
+        # Для других ОС можно использовать platform.platform()
+        var_os_info = platform.platform()
+
     disk_total = disk_used = disk_free = 0
     try:
         disk = psutil.disk_usage("/")
@@ -46,7 +66,7 @@ def collect_metrics() -> Metric:
     metric = Metric(
         public_ip=public_ip,
         hostname=hostname,
-        os_info=os_info,
+        os_info=var_os_info,
         disk_total=disk_total,
         disk_used=disk_used,
         disk_free=disk_free,

@@ -18,7 +18,7 @@ class Metric:
         return {
             "public_ip": self.public_ip,
             "hostname": self.hostname,
-            "os": self.os_info,
+            "os_info": self.os_info,
             "disk_total": self.disk_total,
             "disk_used": self.disk_used,
             "disk_free": self.disk_free,
