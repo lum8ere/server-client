@@ -19,13 +19,14 @@ gen-type:
 	cd backend-v2/apps/gen-type && go run .
 
 # Команды для запуска сервисов
-client-v2:
+# Запуск клиента
+run-client:
 	python -m clientV2.infrastructure.main
 
-# Цель all запускает все компоненты одновременно (в фоне)
-all:
-	@echo "Launching the server, client, and frontend..."
-	(cd server && go run main.go) & \
-	(cd client && python -m client.main) & \
-	(cd frontend-v1 && npm start) & \
-	wait
+# Запуск сервера
+run-server:
+	cd backend-v2/apps/backend-api && go run .
+
+# Запуск фронта
+run-frontend:
+	cd frontend-v2 && yarn dev
