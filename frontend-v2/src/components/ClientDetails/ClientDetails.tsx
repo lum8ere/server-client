@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     Button,
@@ -20,6 +20,7 @@ import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { CameraStream } from 'components/CameraStream/CameraStream';
 import { AudioStream } from 'components/AudioStream/AudioStream';
+import { AudioStreamMic } from 'components/AudioStreamMic/AudioStreamMic'; // новый компонент для микрофонного стриминга
 import { MediaCapture } from 'components/PhotoStream/PhotoStream';
 
 const { TabPane } = Tabs;
@@ -155,7 +156,6 @@ export const ClientDetails: React.FC = () => {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
     };
 
-    debugger;
     const mapCenter: [number, number] = metric
         ? [metric.latitude, metric.longitude]
         : [51.505, -0.09];
@@ -193,8 +193,14 @@ export const ClientDetails: React.FC = () => {
             onClick: () => handleRecordAudio()
         },
         {
-            key: 'listen_microphone',
-            label: 'Listen to the microphone'
+            key: 'start_mic',
+            label: 'Start Mic Stream',
+            onClick: () => sendCommand('start_mic')
+        },
+        {
+            key: 'stop_mic',
+            label: 'Stop Mic Stream',
+            onClick: () => sendCommand('stop_mic')
         }
     ];
 
@@ -309,6 +315,10 @@ export const ClientDetails: React.FC = () => {
                 </TabPane>
                 <TabPane tab="Scripts" key="scripts">
                     <p>Какие-то запросы/логи.</p>
+                </TabPane>
+                <TabPane tab="Microphone" key="microphone">
+                    {/* Новый компонент для непрерывного стриминга аудио с микрофона */}
+                    <AudioStreamMic deviceId={id} />
                 </TabPane>
             </Tabs>
 

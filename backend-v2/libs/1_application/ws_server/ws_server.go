@@ -523,6 +523,31 @@ func handleWsActionMessage(sctx smart_context.ISmartContext, conn *websocket.Con
 		if err := targetConn.WriteMessage(websocket.TextMessage, data); err != nil {
 			sctx.Errorf("Failed to forward %s message: %v", wsMsg.Action, err)
 		}
+	case "audio_stream":
+		sctx.Infof("Received audio stream chunk from device: %s", wsMsg.DeviceKey)
+		// Если требуется пересылка на frontend:
+		var device model.Device
+		err := sctx.GetDB().Where("device_identifier = ?", wsMsg.DeviceKey).First(&device).Error
+		if err != nil {
+			sctx.Warnf("Error finding device for audio stream: %v", err)
+			return
+		}
+		// Формируем ключ для фронтенд-клиента
+		targetKey := "frontend_" + device.ID
+		targetConn, found := ws_registry.GetClient(targetKey)
+		if !found {
+			sctx.Warnf("Frontend client not found for key: %s", targetKey)
+			return
+		}
+		// Маршрутизируем сообщение, пересылая его на фронтенд
+		data, err := json.Marshal(wsMsg)
+		if err != nil {
+			sctx.Errorf("Failed to marshal audio_stream message: %v", err)
+			return
+		}
+		if err := targetConn.WriteMessage(websocket.TextMessage, data); err != nil {
+			sctx.Errorf("Failed to forward audio_stream message: %v", err)
+		}
 	default:
 		sctx.Warnf("Unknown action received: %s", wsMsg.Action)
 	}
