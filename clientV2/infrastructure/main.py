@@ -16,7 +16,7 @@ def main():
     # Создаем экземпляр WebSocket клиента (он отправит регистрацию при установке соединения)
     ws_client = WSClient()
     # Устанавливаем callback для входящих сообщений (команд)
-    ws_client.on_message_callback = lambda msg: process_command(msg, logger)
+    ws_client.on_message_callback = lambda msg: process_command(ws_client, msg, logger)
     ws_client.start()
 
     # Отправляем список приложений после подключения (через небольшую задержку, чтобы соединение успело установиться)

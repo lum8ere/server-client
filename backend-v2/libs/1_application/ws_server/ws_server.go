@@ -366,10 +366,41 @@ func handleWsActionMessage(sctx smart_context.ISmartContext, conn *websocket.Con
 		}
 
 		registrWSConnection(conn, device_id)
+
+		go checkAndSendPendingCommands(sctx, device_id, conn)
 	case "register_frontend":
 		regKey := "frontend_" + wsMsg.DeviceKey
 		ws_registry.SetClient(regKey, conn)
 		sctx.Infof("Registered frontend client with key: %s", regKey)
+	case "command_executed":
+		var payload struct {
+			Command   string `json:"command"`
+			Timestamp int64  `json:"timestamp"`
+		}
+		if err := json.Unmarshal(wsMsg.Payload, &payload); err != nil {
+			sctx.Errorf("Error unmarshalling command_executed payload: %v", err)
+			return
+		}
+
+		var device model.Device
+		err := sctx.GetDB().Where("device_identifier = ?", wsMsg.DeviceKey).First(&device).Error
+		if err != nil {
+			sctx.Warnf("Error finding device for audio stream: %v", err)
+			return
+		}
+		// Здесь можно выполнить логику обновления команды в БД.
+		// Например, найти команду с соответствующим типом и статусом "sent" (или "pending") для данного устройства,
+		// и обновить ее статус на "executed".
+		if err := sctx.GetDB().Model(&model.Command{}).
+			Where("device_id = ? AND command_type = ? AND status IN (?)", device.ID, payload.Command, []string{"PENDING", "SENT"}).
+			Updates(map[string]any{
+				"status":      "EXECUTED",
+				"executed_at": time.Now(),
+			}).Error; err != nil {
+			sctx.Errorf("Error updating command status for command '%s': %v", payload.Command, err)
+		} else {
+			sctx.Infof("Command '%s' for device '%s' marked as executed", payload.Command, wsMsg.DeviceKey)
+		}
 	case "sent_metrics":
 		var metrics model.Metric
 		if err := json.Unmarshal(wsMsg.Payload, &metrics); err != nil {
@@ -659,4 +690,30 @@ func saveInstalledApps(sctx smart_context.ISmartContext, deviceID string, instal
 		}
 	}
 	return nil
+}
+
+func checkAndSendPendingCommands(sctx smart_context.ISmartContext, deviceID string, conn *websocket.Conn) {
+	var pendingCommands []model.Command
+	if err := sctx.GetDB().Where("device_id = ? AND status = ?", deviceID, "pending").Find(&pendingCommands).Error; err != nil {
+		sctx.Errorf("Error fetching pending commands for device %s: %v", deviceID, err)
+		return
+	}
+	if len(pendingCommands) == 0 {
+		sctx.Infof("No pending commands for device %s", deviceID)
+		return
+	}
+	sctx.Infof("Found %d pending commands for device %s", len(pendingCommands), deviceID)
+	for _, cmd := range pendingCommands {
+		// Отправляем команду через WS
+		if err := conn.WriteMessage(websocket.TextMessage, []byte(cmd.CommandType)); err != nil {
+			sctx.Errorf("Error sending pending command %s: %v", cmd.ID, err)
+			continue
+		}
+		// Обновляем статус команды на "sent"
+		sctx.GetDB().Model(&cmd).Updates(map[string]any{
+			"status":      "sent",
+			"executed_at": time.Now(),
+		})
+		sctx.Infof("Pending command %s sent to device %s", cmd.ID, deviceID)
+	}
 }

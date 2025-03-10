@@ -13,8 +13,8 @@ const TableNameCommand = "commands"
 // Command mapped from table <commands>
 type Command struct {
 	ID          string    `gorm:"column:id;primaryKey;default:gen_random_uuid()" json:"id"`
+	DeviceID    string    `gorm:"column:device_id" json:"device_id"`
 	CommandType string    `gorm:"column:command_type;not null" json:"command_type"`
-	Parameters  string    `gorm:"column:parameters" json:"parameters"`
 	Initiator   string    `gorm:"column:initiator" json:"initiator"`
 	Status      string    `gorm:"column:status" json:"status"`
 	CreatedAt   time.Time `gorm:"column:created_at;not null;default:now()" json:"created_at"`

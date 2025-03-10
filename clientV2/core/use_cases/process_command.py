@@ -1,6 +1,9 @@
+import json
+import time
 from clientV2.core.services.logger_service import LoggerService
 from clientV2.adapters.devices import camera_adapter, screenshot_adapter, microphone_adapter
 from clientV2.core.use_cases import vpn_connection, usb_ports, send_recorded_audio
+from clientV2.utils.device_id import get_device_id
 
 # Словарь команд и соответствующих обработчиков.
 COMMAND_HANDLERS = {
@@ -16,13 +19,33 @@ COMMAND_HANDLERS = {
     "disable_usb": usb_ports.disable_usb_ports,  # отключение USB-портов
 }
 
-def process_command(command: str, logger: LoggerService):
+def process_command(ws_client, command: str, logger: LoggerService):
+    """
+    Обрабатывает команду, выполняет соответствующий обработчик и, если команда распознана,
+    отправляет подтверждение серверу с действием "command_executed".
+    """
     cmd = command.lower().strip()
     logger.info(f"Processing command: {cmd}")
     handler = COMMAND_HANDLERS.get(cmd)
     if handler:
         result = handler()  # Вызываем обработчик; если функция что-то возвращает, можно обработать результат.
         logger.info(f"Command '{cmd}' executed successfully.")
-        # Если необходимо, можно отправить результат на сервер или выполнить дополнительную логику.
+        
+
+        # Формируем сообщение подтверждения
+        confirmation_message = {
+            "action": "command_executed",
+            "device_key": get_device_id(),  # Идентификатор устройства
+            "payload": {
+                "command": cmd,
+                "timestamp": int(time.time())
+            }
+        }
+
+        try:
+            ws_client.send_message(json.dumps(confirmation_message))
+            logger.info("Sent command_executed confirmation message.")
+        except Exception as e:
+            logger.error(f"Error sending command_executed message: {e}")
     else:
         logger.info(f"Unknown command received: {command}")

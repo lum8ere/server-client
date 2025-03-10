@@ -7,8 +7,6 @@ interface CameraStreamProps {
 export const CameraStream: React.FC<CameraStreamProps> = ({ id }) => {
     const [imageSrc, setImageSrc] = useState<string>('');
 
-    debugger;
-
     useEffect(() => {
         const ws = new WebSocket('ws://localhost:9000/ws');
 
