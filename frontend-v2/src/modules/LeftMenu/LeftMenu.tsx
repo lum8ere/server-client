@@ -1,14 +1,8 @@
 import React from 'react';
 import { Menu } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import {
-    HomeOutlined,
-    AppstoreOutlined,
-    UserOutlined,
-    SettingOutlined,
-    WindowsOutlined
-} from '@ant-design/icons';
-
+import { WindowsOutlined } from '@ant-design/icons';
+import { ReactComponent as MyLogoIcon } from 'assets/logo.svg';
 interface LeftMenuProps {
     collapsed: boolean;
 }
@@ -16,11 +10,11 @@ interface LeftMenuProps {
 export const LeftMenu: React.FC<LeftMenuProps> = ({ collapsed }) => {
     const navigate = useNavigate();
 
-    // Логотип с анимацией
     const logoBlock = (
         <div
+            onClick={() => navigate('/')}
             style={{
-                height: 64,
+                height: 40,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -28,26 +22,17 @@ export const LeftMenu: React.FC<LeftMenuProps> = ({ collapsed }) => {
                 transition: 'all 0.2s'
             }}
         >
-            <span
+            <MyLogoIcon
                 style={{
-                    color: '#fff',
-                    fontSize: collapsed ? 20 : 22,
-                    fontWeight: 600,
+                    height: collapsed ? 32 : 40,
                     transition: 'all 0.2s'
                 }}
-            >
-                {collapsed ? '⚡' : 'MyApp'}
-            </span>
+            />
         </div>
     );
 
     // Пункты меню
     const menuItems = [
-        // {
-        //     key: '/',
-        //     icon: <HomeOutlined style={{ fontSize: 18, color: '#fff' }} />,
-        //     label: <span style={{ color: '#fff' }}>Главная</span>
-        // },
         {
             key: '/devices',
             icon: <WindowsOutlined style={{ fontSize: 18, color: '#fff' }} />,
