@@ -3,7 +3,7 @@ import { Menu } from 'antd';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { WindowsOutlined, UserOutlined } from '@ant-design/icons';
-import { ReactComponent as MyLogoIcon } from 'assets/mini_logo.svg';
+import { ReactComponent as MyLogoIcon } from 'assets/logo.svg';
 import { RootState } from 'store';
 
 interface LeftMenuProps {

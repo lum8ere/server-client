@@ -22,8 +22,8 @@ import { CameraStream } from 'components/CameraStream/CameraStream';
 import { AudioStream } from 'components/AudioStream/AudioStream';
 import { AudioStreamMic } from 'components/AudioStreamMic/AudioStreamMic';
 import { MediaCapture } from 'components/PhotoStream/PhotoStream';
-
-const { TabPane } = Tabs;
+import { useSelector } from 'react-redux';
+import { RootState } from 'store';
 
 interface Device {
     id: string;
@@ -73,6 +73,7 @@ type NotificationType = 'success' | 'info' | 'warning' | 'error';
 
 export const ClientDetails: React.FC = () => {
     const navigate = useNavigate();
+    const token = useSelector((state: RootState) => state.auth.token);
     const [api, contextHolder] = notification.useNotification();
     const { id } = useParams();
 
@@ -128,7 +129,11 @@ export const ClientDetails: React.FC = () => {
                 command: cmd,
                 device_id: id || ''
             };
-            await instance.post(`/send_command`, body);
+            await instance.post(`/send_command`, body, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
             openNotificationWithIcon('success', cmd);
         } catch (err) {
             openNotificationWithIcon('error', cmd);

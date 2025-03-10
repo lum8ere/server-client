@@ -694,7 +694,7 @@ func saveInstalledApps(sctx smart_context.ISmartContext, deviceID string, instal
 
 func checkAndSendPendingCommands(sctx smart_context.ISmartContext, deviceID string, conn *websocket.Conn) {
 	var pendingCommands []model.Command
-	if err := sctx.GetDB().Where("device_id = ? AND status = ?", deviceID, "pending").Find(&pendingCommands).Error; err != nil {
+	if err := sctx.GetDB().Where("device_id = ? AND status = ?", deviceID, "PENDING").Find(&pendingCommands).Error; err != nil {
 		sctx.Errorf("Error fetching pending commands for device %s: %v", deviceID, err)
 		return
 	}
