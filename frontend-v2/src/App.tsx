@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { DefaultLayout } from 'modules/CommonPage/DefaultLayout';
-import { allRoutes as routes } from 'routing/routes';
-import PrivateRoute from 'components/PrivateRoute/PrivateRoute';
+import { allRoutes as routes, privateRoutes } from 'routing/routes';
+import { PrivateRoute } from 'components/PrivateRoute/PrivateRoute';
 import { LoginPage } from 'pages/LoginPage/LoginPage';
 
 export const App: React.FC = () => {
@@ -12,6 +12,21 @@ export const App: React.FC = () => {
             {/* Все маршруты, требующие авторизации, оборачиваются в PrivateRoute */}
             <Route element={<PrivateRoute />}>
                 {routes.map((route) => (
+                    <Route
+                        key={route.path}
+                        path={route.path}
+                        element={
+                            <DefaultLayout>
+                                <route.component />
+                            </DefaultLayout>
+                        }
+                    />
+                ))}
+            </Route>
+
+            {/* Защищенный маршрут, доступный только администратору */}
+            <Route element={<PrivateRoute requiredRole="admin" />}>
+                {privateRoutes.map((route) => (
                     <Route
                         key={route.path}
                         path={route.path}

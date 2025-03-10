@@ -147,11 +147,13 @@ export const ClientsList: React.FC = () => {
                             size="default"
                             showInfo
                             strokeColor={
-                                percentAvailable < 20
+                                percentAvailable > 80
                                     ? 'red'
                                     : percentAvailable < 40
                                       ? 'orange'
-                                      : 'green'
+                                      : percentAvailable < 15
+                                        ? 'green'
+                                        : 'green'
                             }
                             style={{ width: 80 }}
                         />

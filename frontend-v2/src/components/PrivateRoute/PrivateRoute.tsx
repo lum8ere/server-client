@@ -3,15 +3,24 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { RootState } from 'store';
 
-const PrivateRoute: React.FC = () => {
-    const token = useSelector((state: RootState) => state.auth.token);
+interface PrivateRouteProps {
+    requiredRole?: string; // Например, 'admin'
+    // если children переданы напрямую
+    children?: React.ReactNode;
+}
 
-    // Если токен отсутствует, перенаправляем на /login
-    if (!token) {
+export const PrivateRoute: React.FC<PrivateRouteProps> = ({ requiredRole, children }) => {
+    const { token, user } = useSelector((state: RootState) => state.auth);
+
+    // Если токена или данных пользователя нет, перенаправляем на /login
+    if (!token || !user) {
         return <Navigate to="/login" replace />;
     }
-    // Если токен есть, разрешаем доступ к дочерним маршрутам
-    return <Outlet />;
-};
 
-export default PrivateRoute;
+    // Если требуется проверка роли и роль не соответствует, показываем сообщение
+    if (requiredRole && user.role.toLowerCase() !== requiredRole.toLowerCase()) {
+        return <div>You do not have sufficient privileges to access this page.</div>;
+    }
+
+    return children ? <>{children}</> : <Outlet />;
+};

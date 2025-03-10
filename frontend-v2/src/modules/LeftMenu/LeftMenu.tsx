@@ -1,14 +1,18 @@
 import React from 'react';
 import { Menu } from 'antd';
+import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { WindowsOutlined } from '@ant-design/icons';
+import { WindowsOutlined, UserOutlined } from '@ant-design/icons';
 import { ReactComponent as MyLogoIcon } from 'assets/mini_logo.svg';
+import { RootState } from 'store';
+
 interface LeftMenuProps {
     collapsed: boolean;
 }
 
 export const LeftMenu: React.FC<LeftMenuProps> = ({ collapsed }) => {
     const navigate = useNavigate();
+    const { user } = useSelector((state: RootState) => state.auth);
 
     const logoBlock = (
         <div
@@ -18,20 +22,15 @@ export const LeftMenu: React.FC<LeftMenuProps> = ({ collapsed }) => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                borderBottom: '1px solid rgba(255,255,255,0.1)',
                 transition: 'all 0.2s'
             }}
         >
-            <MyLogoIcon
-                style={{
-                    height: collapsed ? 32 : 40,
-                    transition: 'all 0.2s'
-                }}
-            />
+            <MyLogoIcon style={{ height: collapsed ? 32 : 40, transition: 'all 0.2s' }} />
         </div>
     );
 
-    // Пункты меню
+    // Всегда показываем Devices
     const menuItems = [
         {
             key: '/devices',
@@ -40,13 +39,22 @@ export const LeftMenu: React.FC<LeftMenuProps> = ({ collapsed }) => {
         }
     ];
 
+    // Добавляем пункт Users только если роль пользователя "admin" (без учета регистра)
+    if (user && user.role.toLowerCase() === 'admin') {
+        menuItems.push({
+            key: '/users',
+            icon: <UserOutlined style={{ fontSize: 18, color: '#fff' }} />,
+            label: <span style={{ color: '#fff' }}>Users</span>
+        });
+    }
+
     return (
         <>
             {logoBlock}
             <Menu
                 theme="dark"
                 mode="inline"
-                defaultSelectedKeys={['/']}
+                defaultSelectedKeys={['/devices']}
                 inlineCollapsed={collapsed}
                 items={menuItems}
                 style={{
