@@ -19,6 +19,7 @@ type Device struct {
 	LastSeen         time.Time `gorm:"column:last_seen" json:"last_seen"`
 	CreatedAt        time.Time `gorm:"column:created_at;not null;default:now()" json:"created_at"`
 	UpdatedAt        time.Time `gorm:"column:updated_at;not null;default:now()" json:"updated_at"`
+	GroupID          string    `gorm:"column:group_id" json:"group_id"`
 }
 
 // TableName Device's table name

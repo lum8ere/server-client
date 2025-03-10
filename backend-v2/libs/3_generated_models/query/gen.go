@@ -21,6 +21,7 @@ var (
 	Command           *command
 	Device            *device
 	DeviceApplication *deviceApplication
+	DeviceGroup       *deviceGroup
 	Metric            *metric
 	Role              *role
 	Status            *status
@@ -33,6 +34,7 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	Command = &Q.Command
 	Device = &Q.Device
 	DeviceApplication = &Q.DeviceApplication
+	DeviceGroup = &Q.DeviceGroup
 	Metric = &Q.Metric
 	Role = &Q.Role
 	Status = &Q.Status
@@ -46,6 +48,7 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		Command:           newCommand(db, opts...),
 		Device:            newDevice(db, opts...),
 		DeviceApplication: newDeviceApplication(db, opts...),
+		DeviceGroup:       newDeviceGroup(db, opts...),
 		Metric:            newMetric(db, opts...),
 		Role:              newRole(db, opts...),
 		Status:            newStatus(db, opts...),
@@ -60,6 +63,7 @@ type Query struct {
 	Command           command
 	Device            device
 	DeviceApplication deviceApplication
+	DeviceGroup       deviceGroup
 	Metric            metric
 	Role              role
 	Status            status
@@ -75,6 +79,7 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		Command:           q.Command.clone(db),
 		Device:            q.Device.clone(db),
 		DeviceApplication: q.DeviceApplication.clone(db),
+		DeviceGroup:       q.DeviceGroup.clone(db),
 		Metric:            q.Metric.clone(db),
 		Role:              q.Role.clone(db),
 		Status:            q.Status.clone(db),
@@ -97,6 +102,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		Command:           q.Command.replaceDB(db),
 		Device:            q.Device.replaceDB(db),
 		DeviceApplication: q.DeviceApplication.replaceDB(db),
+		DeviceGroup:       q.DeviceGroup.replaceDB(db),
 		Metric:            q.Metric.replaceDB(db),
 		Role:              q.Role.replaceDB(db),
 		Status:            q.Status.replaceDB(db),
@@ -109,6 +115,7 @@ type queryCtx struct {
 	Command           ICommandDo
 	Device            IDeviceDo
 	DeviceApplication IDeviceApplicationDo
+	DeviceGroup       IDeviceGroupDo
 	Metric            IMetricDo
 	Role              IRoleDo
 	Status            IStatusDo
@@ -121,6 +128,7 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		Command:           q.Command.WithContext(ctx),
 		Device:            q.Device.WithContext(ctx),
 		DeviceApplication: q.DeviceApplication.WithContext(ctx),
+		DeviceGroup:       q.DeviceGroup.WithContext(ctx),
 		Metric:            q.Metric.WithContext(ctx),
 		Role:              q.Role.WithContext(ctx),
 		Status:            q.Status.WithContext(ctx),

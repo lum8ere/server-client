@@ -16,3 +16,13 @@ func GetRoleDictsHandler(sctx smart_context.ISmartContext, params types.ANY_DATA
 
 	return roles, nil
 }
+
+func GetGroupsDictsHandler(sctx smart_context.ISmartContext, params types.ANY_DATA) (interface{}, error) {
+	var roles []model.DeviceGroup
+	err := sctx.GetDB().Find(&roles).Error
+	if err != nil {
+		return nil, fmt.Errorf("ошибка при сохранении состояния объекта: %w", err)
+	}
+
+	return roles, nil
+}

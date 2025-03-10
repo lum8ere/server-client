@@ -42,7 +42,7 @@ INSERT INTO users (id, username, email, password_hash, role_id) VALUES('a7c4265d
 CREATE TABLE IF NOT EXISTS devices (
     id TEXT PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
     device_identifier TEXT NOT NULL UNIQUE,
-    -- user_id TEXT REFERENCES users(id), ВОПРОС НУЖНО ЛИ
+    group_id TEXT REFERENCES device_groups(id) ON DELETE SET NULL,
     description TEXT,
     status TEXT REFERENCES statuses(code),
     last_seen TIMESTAMP,
@@ -81,12 +81,12 @@ CREATE TABLE IF NOT EXISTS commands (
     executed_at TIMESTAMP
 );
 
--- CREATE TABLE IF NOT EXISTS device_groups (
---     id TEXT PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
---     name TEXT NOT NULL UNIQUE,
---     description TEXT,
---     created_at TIMESTAMP NOT NULL DEFAULT NOW()
--- );
+CREATE TABLE IF NOT EXISTS device_groups (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+    name TEXT NOT NULL UNIQUE,
+    description TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
 
 CREATE TABLE IF NOT EXISTS applications (
     id TEXT PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,

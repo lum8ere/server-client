@@ -34,6 +34,7 @@ func newDevice(db *gorm.DB, opts ...gen.DOOption) device {
 	_device.LastSeen = field.NewTime(tableName, "last_seen")
 	_device.CreatedAt = field.NewTime(tableName, "created_at")
 	_device.UpdatedAt = field.NewTime(tableName, "updated_at")
+	_device.GroupID = field.NewString(tableName, "group_id")
 
 	_device.fillFieldMap()
 
@@ -51,6 +52,7 @@ type device struct {
 	LastSeen         field.Time
 	CreatedAt        field.Time
 	UpdatedAt        field.Time
+	GroupID          field.String
 
 	fieldMap map[string]field.Expr
 }
@@ -74,6 +76,7 @@ func (d *device) updateTableName(table string) *device {
 	d.LastSeen = field.NewTime(table, "last_seen")
 	d.CreatedAt = field.NewTime(table, "created_at")
 	d.UpdatedAt = field.NewTime(table, "updated_at")
+	d.GroupID = field.NewString(table, "group_id")
 
 	d.fillFieldMap()
 
@@ -90,7 +93,7 @@ func (d *device) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (d *device) fillFieldMap() {
-	d.fieldMap = make(map[string]field.Expr, 7)
+	d.fieldMap = make(map[string]field.Expr, 8)
 	d.fieldMap["id"] = d.ID
 	d.fieldMap["device_identifier"] = d.DeviceIdentifier
 	d.fieldMap["description"] = d.Description
@@ -98,6 +101,7 @@ func (d *device) fillFieldMap() {
 	d.fieldMap["last_seen"] = d.LastSeen
 	d.fieldMap["created_at"] = d.CreatedAt
 	d.fieldMap["updated_at"] = d.UpdatedAt
+	d.fieldMap["group_id"] = d.GroupID
 }
 
 func (d device) clone(db *gorm.DB) device {

@@ -5,6 +5,7 @@ import (
 	"backed-api-v2/libs/2_domain_methods/handlers"
 	"backed-api-v2/libs/2_domain_methods/handlers/applications"
 	"backed-api-v2/libs/2_domain_methods/handlers/auth"
+	"backed-api-v2/libs/2_domain_methods/handlers/device_groups"
 	"backed-api-v2/libs/2_domain_methods/handlers/devices"
 	"backed-api-v2/libs/2_domain_methods/handlers/dicts"
 	"backed-api-v2/libs/2_domain_methods/handlers/metrics"
@@ -40,6 +41,18 @@ func initRoutes(sctx smart_context.ISmartContext) (*chi.Mux, error) {
 
 	// запросы для фронта
 	r.Get("/api/dicts/roles", run_processor.WrapRestApiSmartHandler(sctx, dicts.GetRoleDictsHandler))
+
+	// Получение профиля текущего пользователя
+	r.Get("/api/profile", run_processor.WrapRestApiSmartHandler(sctx, users.GetProfileHandler))
+	// Обновление профиля текущего пользователя
+	r.Put("/api/profile", run_processor.WrapRestApiSmartHandler(sctx, users.UpdateProfileHandler))
+
+	// Device Groups endpoints
+	r.Get("/api/device-groups", run_processor.WrapRestApiSmartHandler(sctx, device_groups.GetDeviceGroupsHandler))
+	r.Post("/api/device-groups", run_processor.WrapRestApiSmartHandler(sctx, device_groups.CreateDeviceGroupHandler))
+	r.Put("/api/device-groups", run_processor.WrapRestApiSmartHandler(sctx, device_groups.UpdateDeviceGroupHandler))
+	r.Delete("/api/device-groups", run_processor.WrapRestApiSmartHandler(sctx, device_groups.DeleteDeviceGroupHandler))
+	r.Post("/api/device-groups/assign", run_processor.WrapRestApiSmartHandler(sctx, device_groups.AssignDeviceToGroupHandler))
 
 	r.Get("/api/devices", run_processor.WrapRestApiSmartHandler(sctx, devices.GetDevicesHandler))
 	r.Get("/api/users", rest_middleware.RoleMiddleware("ADMIN",

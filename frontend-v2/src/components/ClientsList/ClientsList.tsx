@@ -1,19 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Space, Badge, Progress, Typography } from 'antd';
+import { Table, Button, Badge, Space, Input, Select, Modal, Form, message, Progress } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import instance from 'service/api';
-
-const { Title, Link } = Typography;
 
 interface Device {
     id: string;
     device_identifier: string;
-    user_id?: string;
-    description?: string;
+    description: string;
     status: string;
-    last_seen: string; // в формате ISO string
+    last_seen: string; // или Date, в зависимости от формата данных
     created_at: string;
     updated_at: string;
+    group_id: string;
 }
 
 interface Metric {
@@ -35,37 +33,73 @@ interface Metric {
     created_at: string;
 }
 
-// Для отображения в таблице объединяем данные устройства и его метрик.
 interface ClientNode {
     device: Device;
     metric?: Metric;
 }
 
+interface DeviceGroup {
+    id: string;
+    name: string;
+    description?: string;
+    created_at: string;
+}
+
+const formatBytes = (bytes: number, decimals = 2): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+};
+
+// Цветовая схема для дискового пространства (прямой процент свободного места)
+const getProgressColor = (percent: number): string => {
+    if (percent >= 60) {
+        return '#52c41a'; // green
+    } else if (percent >= 30) {
+        return '#faad14'; // yellow
+    } else {
+        return '#f5222d'; // red
+    }
+};
+
+// Цветовая схема для памяти (по проценту использования)
+const getMemoryProgressColor = (usedPercent: number): string => {
+    if (usedPercent < 30) {
+        return '#52c41a'; // low usage => green
+    } else if (usedPercent < 70) {
+        return '#faad14'; // moderate usage => yellow
+    } else {
+        return '#f5222d'; // high usage => red
+    }
+};
+
 export const ClientsList: React.FC = () => {
     const [nodes, setNodes] = useState<ClientNode[]>([]);
+    const [groups, setGroups] = useState<DeviceGroup[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
+    const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+    const [assignModalVisible, setAssignModalVisible] = useState<boolean>(false);
+    const [form] = Form.useForm();
+    const [groupFilter, setGroupFilter] = useState<string>('all');
+    const [searchText, setSearchText] = useState<string>('');
     const navigate = useNavigate();
 
-    useEffect(() => {
-        fetchDevicesAndMetrics();
-    }, []);
-
-    const fetchDevicesAndMetrics = async () => {
+    const fetchDevices = async () => {
         setLoading(true);
         try {
-            // Выполняем параллельные запросы:
             const [devicesRes, metricsRes] = await Promise.all([
                 instance.get<Device[]>('/api/devices'),
                 instance.get<Metric[]>('/api/metrics')
             ]);
 
-            // Создаем словарь метрик по device_id
             const metricsMap: { [key: string]: Metric } = {};
             metricsRes.data.forEach((m) => {
                 metricsMap[m.device_id] = m;
             });
 
-            // Объединяем устройства с метриками
             const combined: ClientNode[] = devicesRes.data.map((device) => ({
                 device,
                 metric: metricsMap[device.id]
@@ -73,120 +107,214 @@ export const ClientsList: React.FC = () => {
 
             setNodes(combined);
         } catch (err) {
-            console.error('Ошибка получения данных', err);
+            message.error('Failed to fetch devices');
         } finally {
             setLoading(false);
         }
     };
 
-    // Функция для форматирования байтов
-    const formatBytes = (bytes: number, decimals = 2) => {
-        if (!bytes) return '0 Bytes';
-        const k = 1024;
-        const dm = decimals < 0 ? 0 : decimals;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    const fetchGroups = async () => {
+        try {
+            const res = await instance.get<DeviceGroup[]>('/api/device-groups');
+            setGroups(res.data);
+        } catch (err) {
+            message.error('Failed to fetch device groups');
+        }
     };
 
-    // Определяем колонки таблицы
+    useEffect(() => {
+        fetchDevices();
+        fetchGroups();
+    }, []);
+
+    // Фильтрация по группе и поиску по названию (hostname или device_identifier)
+    const filteredNodes = nodes.filter((node) => {
+        const matchesGroup = groupFilter === 'all' ? true : node.device.group_id === groupFilter;
+        const deviceName = node.metric?.hostname || node.device.device_identifier || '';
+        const matchesSearch = deviceName.toLowerCase().includes(searchText.toLowerCase());
+        return matchesGroup && matchesSearch;
+    });
+
+    const handleRowSelection = {
+        selectedRowKeys,
+        onChange: (selectedKeys: React.Key[]) => {
+            setSelectedRowKeys(selectedKeys);
+        }
+    };
+
+    const handleAssign = async () => {
+        if (selectedRowKeys.length !== 1) {
+            message.warning('Please select exactly one device to assign.');
+            return;
+        }
+        setAssignModalVisible(true);
+    };
+
+    const onAssignFinish = async (values: any) => {
+        const payload = {
+            device_id: selectedRowKeys[0],
+            group_id: values.group_id
+        };
+        try {
+            await instance.post('/api/device-groups/assign', payload);
+            message.success('Device assigned to group successfully');
+            setAssignModalVisible(false);
+            setSelectedRowKeys([]);
+            fetchDevices();
+        } catch (err) {
+            message.error('Failed to assign device to group');
+        }
+    };
+
     const columns = [
         {
-            title: 'Node',
-            render: (_: unknown, record: ClientNode) => (
-                <Link onClick={() => navigate(`/devices/${record.device.id}`)}>
+            title: 'Device',
+            render: (_: any, record: ClientNode) => (
+                <a onClick={() => navigate(`/devices/${record.device.id}`)}>
                     {record.metric?.hostname || record.device.device_identifier || '---'}
-                </Link>
+                </a>
             )
         },
         {
             title: 'Status',
-            dataIndex: 'status',
-            render: (_: unknown, record: ClientNode) => {
+            render: (_: any, record: ClientNode) => {
                 const status = record.device.status.toLowerCase();
-                const color = status === 'online' ? 'green' : 'gray';
+                const color = status === 'online' ? 'green' : 'default';
                 return <Badge color={color} text={status === 'online' ? 'Online' : 'Offline'} />;
             }
         },
         {
-            title: 'Disk Space Available',
-            render: (_: unknown, record: ClientNode) => {
+            title: 'Group',
+            render: (_: any, record: ClientNode) => {
+                const group = groups.find((g) => g.id === record.device.group_id);
+                return group ? group.name : 'Unassigned';
+            }
+        },
+        {
+            title: 'Disk Space',
+            render: (_: any, record: ClientNode) => {
                 if (!record.metric) return '---';
-                const total = record.metric.disk_total;
                 const free = record.metric.disk_free;
-                const percentFree = (free / total) * 100;
+                const total = record.metric.disk_total;
+                const percent = total ? Math.round((free / total) * 100) : 0;
                 return (
-                    <Space>
+                    <div>
                         <Progress
-                            percent={Math.round(percentFree)}
-                            size="default"
-                            showInfo
-                            strokeColor={
-                                percentFree < 15 ? 'red' : percentFree < 30 ? 'orange' : 'green'
-                            }
-                            style={{ width: 80 }}
+                            percent={percent}
+                            size="small"
+                            strokeColor={getProgressColor(percent)}
                         />
-                        <div>
+                        <div style={{ fontSize: 12 }}>
                             {formatBytes(free)} / {formatBytes(total)}
                         </div>
-                    </Space>
+                    </div>
                 );
             }
         },
         {
-            title: 'Memory Available',
-            render: (_: unknown, record: ClientNode) => {
+            title: 'Memory',
+            render: (_: any, record: ClientNode) => {
                 if (!record.metric) return '---';
                 const total = record.metric.memory_total;
                 const available = record.metric.memory_available;
-                const percentAvailable = (available / total) * 100;
+                // Вычисляем процент использования памяти: чем выше usage, тем хуже
+                const usedPercent = total ? Math.round(100 - (available / total) * 100) : 0;
                 return (
-                    <Space>
+                    <div>
                         <Progress
-                            percent={Math.round(percentAvailable)}
-                            size="default"
-                            showInfo
-                            strokeColor={
-                                percentAvailable > 80
-                                    ? 'red'
-                                    : percentAvailable < 40
-                                      ? 'orange'
-                                      : percentAvailable < 15
-                                        ? 'green'
-                                        : 'green'
-                            }
-                            style={{ width: 80 }}
+                            percent={usedPercent}
+                            size="small"
+                            strokeColor={getMemoryProgressColor(usedPercent)}
                         />
-                        <div>
-                            {formatBytes(available)} / {formatBytes(total)}
+                        <div style={{ fontSize: 12 }}>
+                            {formatBytes(available)} free / {formatBytes(total)} total
                         </div>
-                    </Space>
+                    </div>
                 );
             }
         },
         {
-            title: 'Operating System',
-            render: (_: unknown, record: ClientNode) => record.metric?.os_info || '---'
+            title: 'Created At',
+            dataIndex: 'created_at',
+            render: (date: string) => new Date(date).toLocaleString()
         }
-        // При необходимости можно добавить другие колонки (CPU, network и т.д.)
     ];
 
     return (
-        <div style={{ padding: 16 }}>
-            <div style={{ marginBottom: 16 }}>
-                <Button onClick={fetchDevicesAndMetrics}>Refresh Data</Button>
+        <div style={{ padding: 24 }}>
+            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
+                <Space>
+                    <Select
+                        style={{ width: 200 }}
+                        value={groupFilter}
+                        onChange={(value) => setGroupFilter(value)}
+                    >
+                        <Select.Option value="all">All Groups</Select.Option>
+                        {groups.map((group) => (
+                            <Select.Option key={group.id} value={group.id}>
+                                {group.name}
+                            </Select.Option>
+                        ))}
+                    </Select>
+                    <Input
+                        placeholder="Search by device name"
+                        style={{ width: 200 }}
+                        allowClear
+                        value={searchText}
+                        onChange={(e) => setSearchText(e.target.value)}
+                    />
+                </Space>
+                <Space>
+                    <Button
+                        type="primary"
+                        onClick={handleAssign}
+                        disabled={selectedRowKeys.length !== 1}
+                    >
+                        Assign Device to Group
+                    </Button>
+                    <Button onClick={fetchDevices}>Refresh</Button>
+                </Space>
             </div>
             <Table
                 rowKey={(record: ClientNode) => record.device.id}
                 columns={columns}
-                dataSource={nodes}
+                dataSource={filteredNodes}
                 loading={loading}
+                rowSelection={handleRowSelection}
                 pagination={{
                     pageSize: 5,
                     showSizeChanger: true,
                     showTotal: (total: number) => `Total ${total} items`
                 }}
             />
+            <Modal
+                title="Assign Device to Group"
+                visible={assignModalVisible}
+                onCancel={() => setAssignModalVisible(false)}
+                footer={null}
+                destroyOnClose
+            >
+                <Form form={form} layout="vertical" onFinish={onAssignFinish}>
+                    <Form.Item
+                        name="group_id"
+                        label="Select Group"
+                        rules={[{ required: true, message: 'Please select a group' }]}
+                    >
+                        <Select placeholder="Select a group">
+                            {groups.map((group) => (
+                                <Select.Option key={group.id} value={group.id}>
+                                    {group.name}
+                                </Select.Option>
+                            ))}
+                        </Select>
+                    </Form.Item>
+                    <Form.Item>
+                        <Button type="primary" htmlType="submit">
+                            Assign
+                        </Button>
+                    </Form.Item>
+                </Form>
+            </Modal>
         </div>
     );
 };

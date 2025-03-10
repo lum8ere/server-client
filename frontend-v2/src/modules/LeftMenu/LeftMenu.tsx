@@ -2,7 +2,7 @@ import React from 'react';
 import { Menu } from 'antd';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { WindowsOutlined, UserOutlined } from '@ant-design/icons';
+import { WindowsOutlined, UserOutlined, GroupOutlined } from '@ant-design/icons';
 import { ReactComponent as MyLogoIcon } from 'assets/logo.svg';
 import { RootState } from 'store';
 
@@ -36,6 +36,11 @@ export const LeftMenu: React.FC<LeftMenuProps> = ({ collapsed }) => {
             key: '/devices',
             icon: <WindowsOutlined style={{ fontSize: 18, color: '#fff' }} />,
             label: <span style={{ color: '#fff' }}>Devices</span>
+        },
+        {
+            key: '/device-groups',
+            icon: <GroupOutlined style={{ fontSize: 18, color: '#fff' }} />,
+            label: <span style={{ color: '#fff' }}>Device groups</span>
         }
     ];
 
