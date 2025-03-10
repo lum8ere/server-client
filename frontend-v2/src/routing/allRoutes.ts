@@ -1,12 +1,17 @@
 import { ClientDetails } from 'components/ClientDetails/ClientDetails';
+import { ClientsList } from 'components/ClientsList/ClientsList';
 import { HomePage } from 'pages/HomePage/HomePage';
 import { NotFoundPage } from 'pages/NotFoundPage/NotFoundPage';
 import { RoutesType } from 'routing/routesTypes';
 
 export const baseRoutes: RoutesType[] = [
+    // {
+    //     path: '/',
+    //     component: HomePage
+    // },
     {
-        path: '/',
-        component: HomePage
+        path: '/devices',
+        component: ClientsList
     },
     {
         path: '/devices/:id',

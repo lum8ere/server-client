@@ -2,7 +2,7 @@ import React from 'react';
 import { Menu } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { WindowsOutlined } from '@ant-design/icons';
-import { ReactComponent as MyLogoIcon } from 'assets/logo.svg';
+import { ReactComponent as MyLogoIcon } from 'assets/mini_logo.svg';
 interface LeftMenuProps {
     collapsed: boolean;
 }
@@ -12,7 +12,7 @@ export const LeftMenu: React.FC<LeftMenuProps> = ({ collapsed }) => {
 
     const logoBlock = (
         <div
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/devices')}
             style={{
                 height: 40,
                 display: 'flex',
