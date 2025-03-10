@@ -30,6 +30,8 @@ func newMetric(db *gorm.DB, opts ...gen.DOOption) metric {
 	_metric.ID = field.NewString(tableName, "id")
 	_metric.DeviceID = field.NewString(tableName, "device_id")
 	_metric.PublicIP = field.NewString(tableName, "public_ip")
+	_metric.Latitude = field.NewFloat64(tableName, "latitude")
+	_metric.Longitude = field.NewFloat64(tableName, "longitude")
 	_metric.Hostname = field.NewString(tableName, "hostname")
 	_metric.OsInfo = field.NewString(tableName, "os_info")
 	_metric.DiskTotal = field.NewInt64(tableName, "disk_total")
@@ -39,12 +41,7 @@ func newMetric(db *gorm.DB, opts ...gen.DOOption) metric {
 	_metric.MemoryUsed = field.NewInt64(tableName, "memory_used")
 	_metric.MemoryAvailable = field.NewInt64(tableName, "memory_available")
 	_metric.ProcessCount = field.NewInt32(tableName, "process_count")
-	_metric.CPUPercent = field.NewFloat32(tableName, "cpu_percent")
-	_metric.BytesSent = field.NewInt64(tableName, "bytes_sent")
-	_metric.BytesRecv = field.NewInt64(tableName, "bytes_recv")
 	_metric.CreatedAt = field.NewTime(tableName, "created_at")
-	_metric.Latitude = field.NewFloat64(tableName, "latitude")
-	_metric.Longitude = field.NewFloat64(tableName, "longitude")
 
 	_metric.fillFieldMap()
 
@@ -58,6 +55,8 @@ type metric struct {
 	ID              field.String
 	DeviceID        field.String
 	PublicIP        field.String
+	Latitude        field.Float64
+	Longitude       field.Float64
 	Hostname        field.String
 	OsInfo          field.String
 	DiskTotal       field.Int64
@@ -67,12 +66,7 @@ type metric struct {
 	MemoryUsed      field.Int64
 	MemoryAvailable field.Int64
 	ProcessCount    field.Int32
-	CPUPercent      field.Float32
-	BytesSent       field.Int64
-	BytesRecv       field.Int64
 	CreatedAt       field.Time
-	Latitude        field.Float64
-	Longitude       field.Float64
 
 	fieldMap map[string]field.Expr
 }
@@ -92,6 +86,8 @@ func (m *metric) updateTableName(table string) *metric {
 	m.ID = field.NewString(table, "id")
 	m.DeviceID = field.NewString(table, "device_id")
 	m.PublicIP = field.NewString(table, "public_ip")
+	m.Latitude = field.NewFloat64(table, "latitude")
+	m.Longitude = field.NewFloat64(table, "longitude")
 	m.Hostname = field.NewString(table, "hostname")
 	m.OsInfo = field.NewString(table, "os_info")
 	m.DiskTotal = field.NewInt64(table, "disk_total")
@@ -101,12 +97,7 @@ func (m *metric) updateTableName(table string) *metric {
 	m.MemoryUsed = field.NewInt64(table, "memory_used")
 	m.MemoryAvailable = field.NewInt64(table, "memory_available")
 	m.ProcessCount = field.NewInt32(table, "process_count")
-	m.CPUPercent = field.NewFloat32(table, "cpu_percent")
-	m.BytesSent = field.NewInt64(table, "bytes_sent")
-	m.BytesRecv = field.NewInt64(table, "bytes_recv")
 	m.CreatedAt = field.NewTime(table, "created_at")
-	m.Latitude = field.NewFloat64(table, "latitude")
-	m.Longitude = field.NewFloat64(table, "longitude")
 
 	m.fillFieldMap()
 
@@ -123,10 +114,12 @@ func (m *metric) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (m *metric) fillFieldMap() {
-	m.fieldMap = make(map[string]field.Expr, 18)
+	m.fieldMap = make(map[string]field.Expr, 15)
 	m.fieldMap["id"] = m.ID
 	m.fieldMap["device_id"] = m.DeviceID
 	m.fieldMap["public_ip"] = m.PublicIP
+	m.fieldMap["latitude"] = m.Latitude
+	m.fieldMap["longitude"] = m.Longitude
 	m.fieldMap["hostname"] = m.Hostname
 	m.fieldMap["os_info"] = m.OsInfo
 	m.fieldMap["disk_total"] = m.DiskTotal
@@ -136,12 +129,7 @@ func (m *metric) fillFieldMap() {
 	m.fieldMap["memory_used"] = m.MemoryUsed
 	m.fieldMap["memory_available"] = m.MemoryAvailable
 	m.fieldMap["process_count"] = m.ProcessCount
-	m.fieldMap["cpu_percent"] = m.CPUPercent
-	m.fieldMap["bytes_sent"] = m.BytesSent
-	m.fieldMap["bytes_recv"] = m.BytesRecv
 	m.fieldMap["created_at"] = m.CreatedAt
-	m.fieldMap["latitude"] = m.Latitude
-	m.fieldMap["longitude"] = m.Longitude
 }
 
 func (m metric) clone(db *gorm.DB) metric {

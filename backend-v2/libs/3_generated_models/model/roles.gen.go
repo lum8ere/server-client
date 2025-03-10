@@ -9,7 +9,8 @@ const TableNameRole = "roles"
 // Role mapped from table <roles>
 type Role struct {
 	ID          string `gorm:"column:id;primaryKey;default:gen_random_uuid()" json:"id"`
-	Name        string `gorm:"column:name;not null" json:"name"`
+	Name        string `gorm:"column:name" json:"name"`
+	Code        string `gorm:"column:code;not null" json:"code"`
 	Description string `gorm:"column:description" json:"description"`
 }
 

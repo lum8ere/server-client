@@ -30,7 +30,7 @@ func newCommand(db *gorm.DB, opts ...gen.DOOption) command {
 	_command.ID = field.NewString(tableName, "id")
 	_command.DeviceID = field.NewString(tableName, "device_id")
 	_command.CommandType = field.NewString(tableName, "command_type")
-	_command.Initiator = field.NewString(tableName, "initiator")
+	_command.UserID = field.NewString(tableName, "user_id")
 	_command.Status = field.NewString(tableName, "status")
 	_command.CreatedAt = field.NewTime(tableName, "created_at")
 	_command.ExecutedAt = field.NewTime(tableName, "executed_at")
@@ -47,7 +47,7 @@ type command struct {
 	ID          field.String
 	DeviceID    field.String
 	CommandType field.String
-	Initiator   field.String
+	UserID      field.String
 	Status      field.String
 	CreatedAt   field.Time
 	ExecutedAt  field.Time
@@ -70,7 +70,7 @@ func (c *command) updateTableName(table string) *command {
 	c.ID = field.NewString(table, "id")
 	c.DeviceID = field.NewString(table, "device_id")
 	c.CommandType = field.NewString(table, "command_type")
-	c.Initiator = field.NewString(table, "initiator")
+	c.UserID = field.NewString(table, "user_id")
 	c.Status = field.NewString(table, "status")
 	c.CreatedAt = field.NewTime(table, "created_at")
 	c.ExecutedAt = field.NewTime(table, "executed_at")
@@ -94,7 +94,7 @@ func (c *command) fillFieldMap() {
 	c.fieldMap["id"] = c.ID
 	c.fieldMap["device_id"] = c.DeviceID
 	c.fieldMap["command_type"] = c.CommandType
-	c.fieldMap["initiator"] = c.Initiator
+	c.fieldMap["user_id"] = c.UserID
 	c.fieldMap["status"] = c.Status
 	c.fieldMap["created_at"] = c.CreatedAt
 	c.fieldMap["executed_at"] = c.ExecutedAt

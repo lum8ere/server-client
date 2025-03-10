@@ -4,7 +4,7 @@ import viteTsconfigPaths from 'vite-tsconfig-paths';
 import svgr from '@svgr/rollup';
 
 export default defineConfig({
-    base: '/devices',
+    base: '/',
     build: {
         outDir: 'build'
     },

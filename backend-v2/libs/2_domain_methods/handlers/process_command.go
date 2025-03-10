@@ -30,7 +30,7 @@ func SendCommandHandler(sctx smart_context.ISmartContext, args types.ANY_DATA) (
 	cmdRecord := &model.Command{
 		DeviceID:    deviceId,
 		CommandType: command,
-		Initiator:   "a7c4265d-545c-404f-a1ef-daf4af2dfb12", // или другой способ идентификации инициатора TODO: После подготовки пользователей, сюда надо будет вставить его
+		UserID:      "a7c4265d-545c-404f-a1ef-daf4af2dfb12", // или другой способ идентификации инициатора TODO: После подготовки пользователей, сюда надо будет вставить его
 		Status:      "PENDING",
 		CreatedAt:   time.Now(),
 	}

@@ -29,6 +29,7 @@ func newRole(db *gorm.DB, opts ...gen.DOOption) role {
 	_role.ALL = field.NewAsterisk(tableName)
 	_role.ID = field.NewString(tableName, "id")
 	_role.Name = field.NewString(tableName, "name")
+	_role.Code = field.NewString(tableName, "code")
 	_role.Description = field.NewString(tableName, "description")
 
 	_role.fillFieldMap()
@@ -42,6 +43,7 @@ type role struct {
 	ALL         field.Asterisk
 	ID          field.String
 	Name        field.String
+	Code        field.String
 	Description field.String
 
 	fieldMap map[string]field.Expr
@@ -61,6 +63,7 @@ func (r *role) updateTableName(table string) *role {
 	r.ALL = field.NewAsterisk(table)
 	r.ID = field.NewString(table, "id")
 	r.Name = field.NewString(table, "name")
+	r.Code = field.NewString(table, "code")
 	r.Description = field.NewString(table, "description")
 
 	r.fillFieldMap()
@@ -78,9 +81,10 @@ func (r *role) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (r *role) fillFieldMap() {
-	r.fieldMap = make(map[string]field.Expr, 3)
+	r.fieldMap = make(map[string]field.Expr, 4)
 	r.fieldMap["id"] = r.ID
 	r.fieldMap["name"] = r.Name
+	r.fieldMap["code"] = r.Code
 	r.fieldMap["description"] = r.Description
 }
 

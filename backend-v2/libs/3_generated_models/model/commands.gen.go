@@ -15,7 +15,7 @@ type Command struct {
 	ID          string    `gorm:"column:id;primaryKey;default:gen_random_uuid()" json:"id"`
 	DeviceID    string    `gorm:"column:device_id" json:"device_id"`
 	CommandType string    `gorm:"column:command_type;not null" json:"command_type"`
-	Initiator   string    `gorm:"column:initiator" json:"initiator"`
+	UserID      string    `gorm:"column:user_id" json:"user_id"`
 	Status      string    `gorm:"column:status" json:"status"`
 	CreatedAt   time.Time `gorm:"column:created_at;not null;default:now()" json:"created_at"`
 	ExecutedAt  time.Time `gorm:"column:executed_at" json:"executed_at"`

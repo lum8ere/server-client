@@ -1,97 +1,51 @@
 package auth
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
-	"gorm.io/gorm"
+	"golang.org/x/crypto/bcrypt"
 
+	"backed-api-v2/libs/3_generated_models/model"
 	"backed-api-v2/libs/5_common/smart_context"
+	"backed-api-v2/libs/5_common/types"
 )
 
-// Здесь определим константы для провайдеров.
-const (
-	ProviderUnknown          = "UNKNOWN"
-)
-
-// Предположим, что у нас есть модель пользователя и credential в базе данных.
-type User struct {
-	ID           uint
-	Username     string
-	PasswordHash string
-	IsActive     bool
-	Role         string
+type LoginResponse struct {
+	Token string `json:"token"`
 }
 
-// fullLogin – упрощённая логика полного логина, которая проверяет учетные данные,
-// генерирует access и refresh токены и сохраняет сессию (например, в Redis).
-func fullLogin(sctx smart_context.ISmartContext, req LoginRequest) (*LoginResponse, error) {
-	// Здесь вы переключаете контекст на tenant-специфичную БД, если требуется.
-	db := sctx.GetDB()
-
-	var user User
-	// Выполняем поиск пользователя по логину (например, по email или username, приведенному к нижнему регистру).
-	if err := db.Where("LOWER(username) = LOWER(?)", req.Login).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("user not found")
-		}
-		return nil, fmt.Errorf("database error: %w", err)
+// LoginHandlerNew выполняет авторизацию пользователя.
+// Он извлекает email и password из args, ищет пользователя в БД,
+// сравнивает пароль (bcrypt) и генерирует JWT с данными пользователя (включая роль).
+func LoginHandler(sctx smart_context.ISmartContext, args types.ANY_DATA) (interface{}, error) {
+	// Извлекаем email
+	email, ok := args.GetStringValue("email")
+	if !ok || email == "" {
+		return nil, fmt.Errorf("missing email")
+	}
+	// Извлекаем пароль
+	password, ok := args.GetStringValue("password")
+	if !ok || password == "" {
+		return nil, fmt.Errorf("missing password")
 	}
 
-	// Здесь должна быть проверка пароля через bcrypt (пример опущен для краткости).
-	// Если пароль не совпадает:
-	// return nil, errors.New("invalid credentials")
-
-	// Если пользователь не активен, возвращаем ошибку.
-	if !user.IsActive {
-		return nil, errors.New("user is not active")
+	// Поиск пользователя по email
+	var user model.User
+	if err := sctx.GetDB().Where("email = ?", email).First(&user).Error; err != nil {
+		return nil, fmt.Errorf("user not found")
 	}
 
-	// Генерируем access и refresh токены.
-	accessToken, err := generateJWT(user, sctx, time.Hour*72)
+	// Сравнение введённого пароля с хэшированным паролем
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
+		return nil, fmt.Errorf("invalid credentials")
+	}
+
+	// Генерация JWT с информацией о пользователе (включая роль)
+	token, err := generateJWT(user, sctx, time.Hour*72)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate access token: %w", err)
-	}
-	refreshToken, err := generateJWT(user, sctx, time.Hour*168) // например, на неделю
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
+		return nil, fmt.Errorf("failed to generate token: %v", err)
 	}
 
-	// Сохраняем сессию в Redis, если требуется (логика не приведена).
-	// Например: saveSessionInRedis(sctx, user.ID, refreshToken)
-
-	resp := &LoginResponse{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-	}
-	return resp, nil
-}
-
-// Login выбирает схему аутентификации по провайдеру.
-func Login(sctx smart_context.ISmartContext, req LoginRequest) (*LoginResponse, error) {
-	// Для примера реализуем только полное логинирование.
-	switch req.ProviderCode {
-	case ProviderUnknown:
-		return fullLogin(sctx, req)
-	default:
-		return nil, fmt.Errorf("unsupported provider_code: %s", req.ProviderCode)
-	}
-}
-
-// generateJWT генерирует JWT-токен на основе данных пользователя.
-// Здесь мы используем secret из smart_context или из переменных окружения.
-func generateJWT(user User, sctx smart_context.ISmartContext, duration time.Duration) (string, error) {
-	// Пример генерации токена (используйте библиотеку github.com/golang-jwt/jwt)
-	// claims := jwt.MapClaims{
-	// 	"user_id":  user.ID,
-	// 	"username": user.Username,
-	// 	"role":     user.Role,
-	// 	"exp":      time.Now().Add(duration).Unix(),
-	// }
-	// token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	// secret := []byte(os.Getenv("JWT_SECRET"))
-	// return token.SignedString(secret)
-	// Для примера вернем заглушку:
-	return "dummy.jwt.token", nil
+	return LoginResponse{Token: token}, nil
 }

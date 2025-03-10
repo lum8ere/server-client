@@ -1,9 +1,3 @@
-CREATE TABLE IF NOT EXISTS roles (
-    id TEXT PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-    name TEXT NOT NULL UNIQUE,
-    description TEXT
-);
-
 -- статус: pending, sent, executed, error, online, offline
 CREATE TABLE IF NOT EXISTS statuses (
     id TEXT PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
@@ -20,13 +14,24 @@ INSERT INTO statuses ("name", code, context) VALUES('sent', 'SENT', 'commands');
 INSERT INTO statuses ("name", code, context) VALUES('executed', 'EXECUTED', 'commands');
 INSERT INTO statuses ("name", code, context) VALUES('error', 'ERROR', 'commands');
 
+CREATE TABLE IF NOT EXISTS roles (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+    name TEXT,
+    code TEXT NOT NULL UNIQUE,
+    description TEXT
+);
+
+INSERT INTO roles ("name", code) VALUES('observer', 'OBSERVER');
+INSERT INTO roles ("name", code) VALUES('observerplus', 'OBSERVER_PLUS');
+INSERT INTO roles ("name", code) VALUES('admin', 'ADMIN');
+
 -- Таблица пользователей
 CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
     username VARCHAR(100) NOT NULL UNIQUE,
     email TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
-    role_id TEXT REFERENCES roles(id),
+    role_code TEXT REFERENCES roles(code),
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -61,10 +66,6 @@ CREATE TABLE IF NOT EXISTS metrics (
     memory_used BIGINT,
     memory_available BIGINT,
     process_count INTEGER,
-    installed_programs JSONB, -- Новый столбец для списка установленных программ
-    cpu_percent REAL,
-    bytes_sent BIGINT,
-    bytes_recv BIGINT,
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
     -- В будущем можно реализовать партиционирование по created_at для таймсерийных данных
 );
@@ -74,18 +75,18 @@ CREATE TABLE IF NOT EXISTS commands (
     id TEXT PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
     device_id TEXT REFERENCES devices(id) on delete cascade,
     command_type TEXT NOT NULL,
-    initiator TEXT REFERENCES users(id),
+    user_id TEXT REFERENCES users(id),
     status TEXT REFERENCES statuses(code) ON DELETE SET NULL, 
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     executed_at TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS device_groups (
-    id TEXT PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-    name TEXT NOT NULL UNIQUE,
-    description TEXT,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
+-- CREATE TABLE IF NOT EXISTS device_groups (
+--     id TEXT PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+--     name TEXT NOT NULL UNIQUE,
+--     description TEXT,
+--     created_at TIMESTAMP NOT NULL DEFAULT NOW()
+-- );
 
 CREATE TABLE IF NOT EXISTS applications (
     id TEXT PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,

@@ -30,11 +30,11 @@ func initRoutes(sctx smart_context.ISmartContext) (*chi.Mux, error) {
 		MaxAge:           300, // Maximum value not ignored by any of major browsers
 	}))
 
-	r.Post("/auth/login", rest_middleware.WithRestApiSmartContext(sctx, auth.LoginHandler))
 	r.Get("/rnd2", run_processor.WrapRestApiSmartHandler(sctx, test_handlers.RndHandler2))
 
 	// Запрос для обработки команд
-	r.Post("/send_command", run_processor.WrapRestApiSmartHandler(sctx, handlers.SendCommandHandler))
+	r.Post("/send_command", rest_middleware.RoleMiddleware("ADMIN",
+		run_processor.WrapRestApiSmartHandler(sctx, handlers.SendCommandHandler)))
 
 	// запросы для фронта
 	r.Get("/api/devices", run_processor.WrapRestApiSmartHandler(sctx, devices.GetDevicesHandler))
@@ -43,6 +43,10 @@ func initRoutes(sctx smart_context.ISmartContext) (*chi.Mux, error) {
 	r.Get("/api/metrics/{id}", run_processor.WrapRestApiSmartHandler(sctx, metrics.GetMetricsByDeviceIDHandler))         // тут id это id девайса
 	r.Get("/api/apps/{id}", run_processor.WrapRestApiSmartHandler(sctx, applications.GetApplicationsByDevicesIDHandler)) // тут id это id девайса
 
+	// запросы на регистрацию и авторизацию
+	r.Post("/api/auth/register", rest_middleware.RoleMiddleware("ADMIN",
+		run_processor.WrapRestApiSmartHandler(sctx, auth.RegisterHandler)))
+	r.Post("/api/auth/login", run_processor.WrapRestApiSmartHandler(sctx, auth.LoginHandler))
 	// pprof
 	runtime.SetMutexProfileFraction(1)
 	r.Mount("/debug", chi_middleware.Profiler())

@@ -15,6 +15,8 @@ type Metric struct {
 	ID              string    `gorm:"column:id;primaryKey;default:gen_random_uuid()" json:"id"`
 	DeviceID        string    `gorm:"column:device_id" json:"device_id"`
 	PublicIP        string    `gorm:"column:public_ip" json:"public_ip"`
+	Latitude        float64   `gorm:"column:latitude" json:"latitude"`
+	Longitude       float64   `gorm:"column:longitude" json:"longitude"`
 	Hostname        string    `gorm:"column:hostname" json:"hostname"`
 	OsInfo          string    `gorm:"column:os_info" json:"os_info"`
 	DiskTotal       int64     `gorm:"column:disk_total" json:"disk_total"`
@@ -24,12 +26,7 @@ type Metric struct {
 	MemoryUsed      int64     `gorm:"column:memory_used" json:"memory_used"`
 	MemoryAvailable int64     `gorm:"column:memory_available" json:"memory_available"`
 	ProcessCount    int32     `gorm:"column:process_count" json:"process_count"`
-	CPUPercent      float32   `gorm:"column:cpu_percent" json:"cpu_percent"`
-	BytesSent       int64     `gorm:"column:bytes_sent" json:"bytes_sent"`
-	BytesRecv       int64     `gorm:"column:bytes_recv" json:"bytes_recv"`
 	CreatedAt       time.Time `gorm:"column:created_at;not null;default:now()" json:"created_at"`
-	Latitude        float64   `gorm:"column:latitude" json:"latitude"`
-	Longitude       float64   `gorm:"column:longitude" json:"longitude"`
 }
 
 // TableName Metric's table name
