@@ -1,24 +1,30 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { DefaultLayout } from 'modules/CommonPage/DefaultLayout';
 import { allRoutes as routes } from 'routing/routes';
+import PrivateRoute from 'components/PrivateRoute/PrivateRoute';
 import { LoginPage } from 'pages/LoginPage/LoginPage';
-import { RegisterPage } from 'pages/RegisterPage/RegisterPage';
 
 export const App: React.FC = () => {
     return (
-        <DefaultLayout>
-            <Routes>
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
-
-                {routes.map((route) => {
-                    return (
-                        <Route key={route.path} path={route.path} element={<route.component />} />
-                    );
-                })}
-
-                <Route path="*" element={<Navigate to="/404" />} />
-            </Routes>
-        </DefaultLayout>
+        <Routes>
+            {/* Публичные маршруты */}
+            <Route path="/login" element={<LoginPage />} />
+            {/* Все маршруты, требующие авторизации, оборачиваются в PrivateRoute */}
+            <Route element={<PrivateRoute />}>
+                {routes.map((route) => (
+                    <Route
+                        key={route.path}
+                        path={route.path}
+                        element={
+                            <DefaultLayout>
+                                <route.component />
+                            </DefaultLayout>
+                        }
+                    />
+                ))}
+            </Route>
+            {/* Любой несуществующий URL перенаправляем на страницу /login */}
+            <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
     );
 };
