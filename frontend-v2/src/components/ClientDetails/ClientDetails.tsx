@@ -261,6 +261,28 @@ export const ClientDetails: React.FC = () => {
                     pagination={{ pageSize: 5 }}
                 />
             )
+        },
+        {
+            key: 'map',
+            label: 'Location',
+            children: (
+                <div style={{ width: '100%', height: '400px' }}>
+                    <MapContainer
+                        center={mapCenter}
+                        zoom={13}
+                        style={{ height: '100%', width: '100%' }}
+                    >
+                        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                        {metric && (
+                            <Marker position={[metric.latitude, metric.longitude]}>
+                                <Popup>
+                                    Текущая позиция: {metric.latitude}, {metric.longitude}
+                                </Popup>
+                            </Marker>
+                        )}
+                    </MapContainer>
+                </div>
+            )
         }
     ];
 
@@ -327,25 +349,8 @@ export const ClientDetails: React.FC = () => {
                 )}
             </div>
 
-            <Tabs defaultActiveKey="details" items={tabsItems} />
-
             <div style={{ marginTop: 16, padding: 16, background: '#fff' }}>
-                <div style={{ width: '100%', height: '400px' }}>
-                    <MapContainer
-                        center={mapCenter}
-                        zoom={13}
-                        style={{ height: '100%', width: '100%' }}
-                    >
-                        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                        {metric && (
-                            <Marker position={[metric.latitude, metric.longitude]}>
-                                <Popup>
-                                    Текущая позиция: {metric.latitude}, {metric.longitude}
-                                </Popup>
-                            </Marker>
-                        )}
-                    </MapContainer>
-                </div>
+                <Tabs defaultActiveKey="details" items={tabsItems} />
             </div>
 
             <Modal

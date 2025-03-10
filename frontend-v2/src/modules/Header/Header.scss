@@ -1,42 +1,17 @@
-// @import 'variables'; // Импортируем ваши переменные
-
 .header {
-    z-index: 1000;
-    // box-shadow: $header-box-shadow;
     display: flex;
-    justify-content: center;
     align-items: center;
-    padding: 0;
+    justify-content: space-between;
+    height: 64px; // по умолчанию у ant layout header 64px
     background-color: #222;
-    height: 50px;
-}
 
-.header__center {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-grow: 1;
-}
+    &__title {
+        color: #fff;
+        font-size: 20px;
+        margin-left: 16px;
+    }
 
-.header__center .ant-btn {
-    font-size: 18px;
-    color: #ffffff;
-    padding: 0 16px;
-    height: auto;
-    border: none;
-    background: transparent;
-}
-
-.header__center .ant-btn:hover {
-    color: #ffffff !important;
-    background: transparent !important;
-    box-shadow: none !important;
-}
-
-.header__right {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding-right: 10px;
-    color: #ffffff !important;
+    &__profile {
+        margin-right: 16px;
+    }
 }
