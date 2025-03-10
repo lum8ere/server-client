@@ -16,7 +16,7 @@ export const LoginPage: React.FC = () => {
             const resultAction = await dispatch(loginUser(values));
             if (loginUser.fulfilled.match(resultAction)) {
                 message.success('Logged in successfully');
-                navigate('/');
+                navigate('/devices');
             } else {
                 message.error(resultAction.payload as string);
             }
