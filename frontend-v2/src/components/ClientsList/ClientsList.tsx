@@ -1,17 +1,29 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Badge, Space, Input, Select, Modal, Form, message, Progress } from 'antd';
+import {
+    Table,
+    Button,
+    Badge,
+    Space,
+    Input,
+    Select,
+    Modal,
+    Form,
+    message,
+    Progress,
+    ConfigProvider
+} from 'antd';
 import { useNavigate } from 'react-router-dom';
 import instance from 'service/api';
 
 interface Device {
     id: string;
     device_identifier: string;
-    description: string;
+    description?: string;
     status: string;
-    last_seen: string; // или Date, в зависимости от формата данных
+    last_seen: string;
     created_at: string;
     updated_at: string;
-    group_id: string;
+    group_id?: string;
 }
 
 interface Metric {
@@ -57,22 +69,22 @@ const formatBytes = (bytes: number, decimals = 2): string => {
 // Цветовая схема для дискового пространства (прямой процент свободного места)
 const getProgressColor = (percent: number): string => {
     if (percent >= 60) {
-        return '#52c41a'; // green
+        return '#52c41a'; // зеленый (остается как есть)
     } else if (percent >= 30) {
-        return '#faad14'; // yellow
+        return '#faad14'; // желтый
     } else {
-        return '#f5222d'; // red
+        return '#f5222d'; // красный
     }
 };
 
-// Цветовая схема для памяти (по проценту использования)
+// Цветовая схема для памяти (чем выше использование, тем хуже)
 const getMemoryProgressColor = (usedPercent: number): string => {
     if (usedPercent < 30) {
-        return '#52c41a'; // low usage => green
+        return '#52c41a'; // green - low usage
     } else if (usedPercent < 70) {
-        return '#faad14'; // moderate usage => yellow
+        return '#faad14'; // yellow - moderate usage
     } else {
-        return '#f5222d'; // high usage => red
+        return '#f5222d'; // red - high usage
     }
 };
 
@@ -217,7 +229,7 @@ export const ClientsList: React.FC = () => {
                 if (!record.metric) return '---';
                 const total = record.metric.memory_total;
                 const available = record.metric.memory_available;
-                // Вычисляем процент использования памяти: чем выше usage, тем хуже
+                // Используем процент использования памяти: чем больше используется, тем "хуже"
                 const usedPercent = total ? Math.round(100 - (available / total) * 100) : 0;
                 return (
                     <div>
@@ -232,11 +244,6 @@ export const ClientsList: React.FC = () => {
                     </div>
                 );
             }
-        },
-        {
-            title: 'Created At',
-            dataIndex: 'created_at',
-            render: (date: string) => new Date(date).toLocaleString()
         }
     ];
 
@@ -272,7 +279,9 @@ export const ClientsList: React.FC = () => {
                     >
                         Assign Device to Group
                     </Button>
-                    <Button onClick={fetchDevices}>Refresh</Button>
+                    <Button type="primary" onClick={fetchDevices}>
+                        Refresh
+                    </Button>
                 </Space>
             </div>
             <Table

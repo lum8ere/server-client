@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from 'store';
+import { ConfigProvider } from 'antd';
 import { App } from 'App';
 import './index.css';
 
@@ -10,11 +11,19 @@ const rootElement = document.getElementById('root');
 
 const NewClientApp: React.FC = () => (
     <StrictMode>
-        <Provider store={store}>
-            <BrowserRouter>
-                <App />
-            </BrowserRouter>
-        </Provider>
+        <ConfigProvider
+            theme={{
+                token: {
+                    colorPrimary: '#7cccab'
+                }
+            }}
+        >
+            <Provider store={store}>
+                <BrowserRouter>
+                    <App />
+                </BrowserRouter>
+            </Provider>
+        </ConfigProvider>
     </StrictMode>
 );
 

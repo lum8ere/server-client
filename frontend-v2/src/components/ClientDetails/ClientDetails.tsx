@@ -297,7 +297,9 @@ export const ClientDetails: React.FC = () => {
             <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
                 <Col>
                     <Space>
-                        <Button onClick={handleBack}>{'< Back'}</Button>
+                        <Button type="primary" onClick={handleBack}>
+                            {'< Back'}
+                        </Button>
                         <span style={{ fontSize: 18, fontWeight: 'bold' }}>
                             {metric?.hostname || id}
                         </span>
@@ -306,18 +308,20 @@ export const ClientDetails: React.FC = () => {
                 <Col>
                     <Space>
                         <Dropdown menu={{ items: cameraItems }} placement="bottomLeft">
-                            <Button>Webcam</Button>
+                            <Button type="primary">Webcam</Button>
                         </Dropdown>
                         <Dropdown menu={{ items: audioItems }} placement="bottomLeft">
-                            <Button>Audio</Button>
+                            <Button type="primary">Audio</Button>
                         </Dropdown>
                         <Dropdown menu={{ items: usbItems }} placement="bottomLeft">
-                            <Button>USB</Button>
+                            <Button type="primary">USB</Button>
                         </Dropdown>
-                        <Button onClick={() => sendCommand('create_vpn')}>
+                        <Button type="primary" onClick={() => sendCommand('create_vpn')}>
                             Create VPN connection
                         </Button>
-                        <Button onClick={handleScreenshotModal}>Take Screenshot</Button>
+                        <Button type="primary" onClick={handleScreenshotModal}>
+                            Take Screenshot
+                        </Button>
                     </Space>
                 </Col>
             </Row>
